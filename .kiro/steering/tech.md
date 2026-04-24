@@ -1,6 +1,6 @@
 # Tech Stack
 
-- **Language**: Python 3.11+
+- **Language**: Python 3.14+
 - **Build System**: setuptools via `pyproject.toml`
 - **Data Validation**: Pydantic v2 (models as data contracts across all layers)
 - **Database**: SQLite with WAL mode, foreign keys, CHECK constraints, and triggers

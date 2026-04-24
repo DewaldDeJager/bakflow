@@ -118,7 +118,7 @@ class TestReviewQueueFiltering:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _create_drive_with_mixed_entries(repo, conn, entry_specs)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_review_queue(drive_id=drive_id)
             )
             assert "error" not in result
@@ -138,7 +138,7 @@ class TestReviewQueueFiltering:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _create_drive_with_mixed_entries(repo, conn, entry_specs)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_review_queue(drive_id=drive_id, limit=1000)
             )
             assert "error" not in result
@@ -159,7 +159,7 @@ class TestReviewQueueFiltering:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _create_drive_with_mixed_entries(repo, conn, entry_specs)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_review_queue(drive_id=drive_id, limit=1000)
             )
             assert "error" not in result

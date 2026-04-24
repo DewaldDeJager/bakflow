@@ -192,7 +192,7 @@ class TestClassifierOutputCompleteness:
 
             import asyncio
 
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -235,7 +235,7 @@ class TestFileClassificationsValid:
 
             import asyncio
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -275,7 +275,7 @@ class TestFolderClassificationsValid:
 
             import asyncio
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -311,7 +311,7 @@ class TestConfidenceInRange:
 
             import asyncio
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -348,7 +348,7 @@ class TestClassificationStatusTransitioned:
 
             import asyncio
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -379,7 +379,7 @@ class TestMutualExclusivityOfClassificationFields:
 
             import asyncio
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 

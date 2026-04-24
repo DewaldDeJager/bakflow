@@ -189,7 +189,7 @@ class TestConfidenceBelowThresholdSetsPriorityReview:
             )
             classifier = BatchClassifier(provider, repo, conn, config)
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -225,7 +225,7 @@ class TestConfidenceAtOrAboveThresholdNoPriorityReview:
             )
             classifier = BatchClassifier(provider, repo, conn, config)
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -271,7 +271,7 @@ class TestThresholdBoundaryExact:
             )
             classifier = BatchClassifier(provider, repo, conn, config)
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -330,7 +330,7 @@ class TestThresholdAppliesToBothFileAndFolder:
             )
             classifier = BatchClassifier(provider, repo, conn, config)
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 

@@ -143,7 +143,7 @@ class TestCascadeBehavior:
             )
 
             # Record decision on folder with cascade
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 record_decision(
                     entry_id=folder_id,
                     decision=cascade_decision,
@@ -181,7 +181,7 @@ class TestCascadeBehavior:
                 repo, conn, child_decisions
             )
 
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 record_decision(
                     entry_id=folder_id,
                     decision=cascade_decision,

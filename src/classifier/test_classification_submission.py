@@ -228,7 +228,7 @@ class TestFileClassificationSubmissionRoundTrip:
             config = ClassifierConfig(confidence_threshold=0.7, batch_size=100)
             classifier = BatchClassifier(provider, repo, conn, config)
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -260,7 +260,7 @@ class TestFolderClassificationSubmissionRoundTrip:
             config = ClassifierConfig(confidence_threshold=0.7, batch_size=100)
             classifier = BatchClassifier(provider, repo, conn, config)
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -289,7 +289,7 @@ class TestMixedSubmissionRoundTrip:
             config = ClassifierConfig(confidence_threshold=0.7, batch_size=100)
             classifier = BatchClassifier(provider, repo, conn, config)
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -333,7 +333,7 @@ class TestSubmissionStatusTransition:
             config = ClassifierConfig(confidence_threshold=0.7, batch_size=100)
             classifier = BatchClassifier(provider, repo, conn, config)
 
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 
@@ -366,7 +366,7 @@ class TestSubmissionReasoningPersisted:
             config = ClassifierConfig(confidence_threshold=0.7, batch_size=100)
             classifier = BatchClassifier(provider, repo, conn, config)
 
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 classifier.classify_batch(drive_id, batch_size=100)
             )
 

@@ -74,31 +74,31 @@ class TestMCPParameterValidation:
         conn, repo, path = _make_temp_db()
         try:
             # get_unclassified_batch
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_unclassified_batch(drive_id=drive_id)
             )
             _assert_error_response(result)
 
             # get_folder_summary
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_folder_summary(drive_id=drive_id, path="/some/path")
             )
             _assert_error_response(result)
 
             # get_review_queue
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_review_queue(drive_id=drive_id)
             )
             _assert_error_response(result)
 
             # get_drive_progress
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_drive_progress(drive_id=drive_id)
             )
             _assert_error_response(result)
 
             # get_decision_manifest
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_decision_manifest(drive_id=drive_id)
             )
             _assert_error_response(result)
@@ -117,7 +117,7 @@ class TestMCPParameterValidation:
                 lambda: get_drive_progress(drive_id=""),
                 lambda: get_decision_manifest(drive_id=""),
             ]:
-                result = asyncio.get_event_loop().run_until_complete(tool_fn())
+                result = asyncio.run(tool_fn())
                 _assert_error_response(result)
         finally:
             conn.close()
@@ -128,7 +128,7 @@ class TestMCPParameterValidation:
         conn, repo, path = _make_temp_db()
         try:
             drive = repo.create_drive(label="test")
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_folder_summary(drive_id=drive.id, path="")
             )
             _assert_error_response(result)
@@ -141,12 +141,12 @@ class TestMCPParameterValidation:
         conn, repo, path = _make_temp_db()
         try:
             drive = repo.create_drive(label="test")
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_unclassified_batch(drive_id=drive.id, batch_size=0)
             )
             _assert_error_response(result)
 
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_unclassified_batch(drive_id=drive.id, batch_size=-5)
             )
             _assert_error_response(result)
@@ -177,7 +177,7 @@ class TestMCPParameterValidation:
             entries = repo.get_entries_by_drive(drive.id)
             entry_id = entries[0].id
 
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 record_decision(entry_id=entry_id, decision=decision)
             )
             _assert_error_response(result)
@@ -193,7 +193,7 @@ class TestMCPParameterValidation:
         """record_decision returns error for nonexistent entry_id."""
         conn, repo, path = _make_temp_db()
         try:
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 record_decision(entry_id=entry_id, decision="include")
             )
             _assert_error_response(result)
@@ -205,7 +205,7 @@ class TestMCPParameterValidation:
         """submit_classification returns error for empty list."""
         conn, repo, path = _make_temp_db()
         try:
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 submit_classification(classifications=[])
             )
             _assert_error_response(result)
@@ -217,7 +217,7 @@ class TestMCPParameterValidation:
         """submit_classification reports failure for items missing entry_id."""
         conn, repo, path = _make_temp_db()
         try:
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 submit_classification(classifications=[
                     {"file_class": "document", "confidence": 0.9}
                 ])
@@ -243,7 +243,7 @@ class TestMCPParameterValidation:
             entries = repo.get_entries_by_drive(drive.id)
             entry_id = entries[0].id
 
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 submit_classification(classifications=[
                     {"entry_id": entry_id, "file_class": "document", "confidence": 1.5}
                 ])
@@ -258,7 +258,7 @@ class TestMCPParameterValidation:
         conn, repo, path = _make_temp_db()
         try:
             drive = repo.create_drive(label="test")
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_review_queue(drive_id=drive.id, limit=-1)
             )
             _assert_error_response(result)
@@ -271,7 +271,7 @@ class TestMCPParameterValidation:
         conn, repo, path = _make_temp_db()
         try:
             drive = repo.create_drive(label="test")
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_review_queue(drive_id=drive.id, offset=-1)
             )
             _assert_error_response(result)

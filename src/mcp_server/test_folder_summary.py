@@ -127,7 +127,7 @@ class TestFolderSummaryAggregation:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _setup_folder(repo, conn, folder_path, children)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_folder_summary(drive_id=drive_id, path=folder_path)
             )
             assert "error" not in result
@@ -145,7 +145,7 @@ class TestFolderSummaryAggregation:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _setup_folder(repo, conn, folder_path, children)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_folder_summary(drive_id=drive_id, path=folder_path)
             )
             assert "error" not in result
@@ -165,7 +165,7 @@ class TestFolderSummaryAggregation:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _setup_folder(repo, conn, folder_path, children)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_folder_summary(drive_id=drive_id, path=folder_path)
             )
             assert "error" not in result
@@ -189,7 +189,7 @@ class TestFolderSummaryAggregation:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _setup_folder(repo, conn, folder_path, children)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_folder_summary(drive_id=drive_id, path=folder_path)
             )
             assert "error" not in result

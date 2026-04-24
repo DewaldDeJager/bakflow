@@ -17,7 +17,7 @@ drive-backup-triage import-csv THREADRIPPER_F.csv --drive-label "Threadripper F:
 
 ## Requirements
 
-- Python 3.11+
+- Python 3.14+
 - [Ollama](https://ollama.com/) running locally (default LLM provider), or an OpenAI API key
 
 ## CLI Reference

@@ -120,7 +120,7 @@ class TestUnclassifiedBatchFiltering:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _create_drive_with_entries(repo, conn, statuses)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_unclassified_batch(drive_id=drive_id, batch_size=batch_size)
             )
             assert "error" not in result
@@ -145,7 +145,7 @@ class TestUnclassifiedBatchFiltering:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _create_drive_with_entries(repo, conn, statuses)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_unclassified_batch(drive_id=drive_id, batch_size=batch_size)
             )
             assert "error" not in result
@@ -171,7 +171,7 @@ class TestUnclassifiedBatchFiltering:
             eligible_count = sum(
                 1 for s in statuses if s in ("unclassified", "needs_reclassification")
             )
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_unclassified_batch(drive_id=drive_id, batch_size=len(statuses) + 10)
             )
             assert "error" not in result

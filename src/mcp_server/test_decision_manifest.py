@@ -107,7 +107,7 @@ class TestDecisionManifestFiltering:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _create_entries_with_states(repo, conn, entry_states)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_decision_manifest(drive_id=drive_id, decision_filter=decision_filter)
             )
             assert "error" not in result
@@ -127,7 +127,7 @@ class TestDecisionManifestFiltering:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _create_entries_with_states(repo, conn, entry_states)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_decision_manifest(drive_id=drive_id, decision_filter=decision_filter)
             )
             assert "error" not in result
@@ -147,7 +147,7 @@ class TestDecisionManifestFiltering:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _create_entries_with_states(repo, conn, entry_states)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_decision_manifest(drive_id=drive_id, decision_filter=decision_filter)
             )
             assert "error" not in result
@@ -172,7 +172,7 @@ class TestDecisionManifestFiltering:
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _create_entries_with_states(repo, conn, entry_states)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_decision_manifest(drive_id=drive_id, decision_filter=decision_filter)
             )
             assert "error" not in result

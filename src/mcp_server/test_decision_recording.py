@@ -109,7 +109,7 @@ class TestDecisionRecording:
         conn, repo, path = _make_temp_db()
         try:
             _, entry_id = _create_ai_classified_entry(repo, conn)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 record_decision(
                     entry_id=entry_id,
                     decision=decision,
@@ -136,7 +136,7 @@ class TestDecisionRecording:
         conn, repo, path = _make_temp_db()
         try:
             _, entry_id = _create_ai_classified_entry(repo, conn)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 record_decision(
                     entry_id=entry_id,
                     decision=decision,
@@ -162,11 +162,11 @@ class TestDecisionRecording:
         try:
             _, entry_id = _create_ai_classified_entry(repo, conn)
             # First decision
-            asyncio.get_event_loop().run_until_complete(
+            asyncio.run(
                 record_decision(entry_id=entry_id, decision="include")
             )
             # Second decision (change mind)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 record_decision(entry_id=entry_id, decision=decision)
             )
             assert "error" not in result

@@ -2,7 +2,7 @@
 name = "drive-backup-triage"
 version = "0.1.0"
 description = "AI-assisted drive backup triage tool"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
     "pydantic>=2.0",
     "mcp>=1.0",
@@ -24,4 +24,4 @@ drive-backup-triage = "src.cli:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"

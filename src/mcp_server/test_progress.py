@@ -119,7 +119,7 @@ class TestProgressAggregation:
         conn, repo, path = _make_temp_db()
         try:
             drive_id, _ = _create_entries_with_states(repo, conn, entry_states)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_drive_progress(drive_id=drive_id)
             )
             assert "error" not in result
@@ -137,7 +137,7 @@ class TestProgressAggregation:
         conn, repo, path = _make_temp_db()
         try:
             drive_id, actual = _create_entries_with_states(repo, conn, entry_states)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_drive_progress(drive_id=drive_id)
             )
             assert "error" not in result
@@ -158,7 +158,7 @@ class TestProgressAggregation:
         conn, repo, path = _make_temp_db()
         try:
             drive_id, actual = _create_entries_with_states(repo, conn, entry_states)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_drive_progress(drive_id=drive_id)
             )
             assert "error" not in result
@@ -179,7 +179,7 @@ class TestProgressAggregation:
         conn, repo, path = _make_temp_db()
         try:
             drive_id, actual = _create_entries_with_states(repo, conn, entry_states)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_drive_progress(drive_id=drive_id)
             )
             assert "error" not in result
@@ -200,7 +200,7 @@ class TestProgressAggregation:
         conn, repo, path = _make_temp_db()
         try:
             drive_id, actual = _create_entries_with_states(repo, conn, entry_states)
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 get_drive_progress(drive_id=drive_id)
             )
             assert "error" not in result
