@@ -89,48 +89,48 @@ Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, 
     - For any CSV with mixed valid/malformed rows, only valid rows produce Entries; ImportResult reports correct skip count and row numbers
     - **Validates: Requirements 1.4**
 
-- [ ] 5. Implement classifier with provider abstraction
-  - [ ] 5.1 Implement `classifier/provider.py` — LLMProvider protocol and factory
+- [x] 5. Implement classifier with provider abstraction
+  - [x] 5.1 Implement `classifier/provider.py` — LLMProvider protocol and factory
     - Define `LLMProvider` Protocol with `classify_files` and `classify_folders` async methods
     - Implement `create_provider(config)` factory returning OllamaProvider or OpenAIProvider based on config
     - _Requirements: 2.3, 2.4_
 
-  - [ ] 5.2 Implement `classifier/prompts.py` — prompt templates
+  - [x] 5.2 Implement `classifier/prompts.py` — prompt templates
     - Implement `build_file_classification_prompt(summaries)` including full File_Class taxonomy with descriptions
     - Implement `build_folder_classification_prompt(summary)` including full Folder_Purpose_Taxonomy with descriptions and aggregated folder stats
     - _Requirements: 2.3, 2.4, 2.8_
 
-  - [ ] 5.3 Implement `classifier/ollama_provider.py` — Ollama LLM provider
+  - [x] 5.3 Implement `classifier/ollama_provider.py` — Ollama LLM provider
     - Implement `OllamaProvider` class with `classify_files` and `classify_folders` using Ollama's `format` parameter with Pydantic JSON schema for structured output
     - Handle connection errors, timeouts, malformed responses
     - _Requirements: 2.3, 2.4, 2.6_
 
-  - [ ] 5.4 Implement `classifier/openai_provider.py` — OpenAI LLM provider
+  - [x] 5.4 Implement `classifier/openai_provider.py` — OpenAI LLM provider
     - Implement `OpenAIProvider` class with `classify_files` and `classify_folders` using OpenAI's `response_format` with `json_schema`
     - Handle auth failures, rate limits (exponential backoff), malformed responses
     - _Requirements: 2.3, 2.4_
 
-  - [ ] 5.5 Implement `classifier/batch.py` — batch orchestration and confidence threshold logic
+  - [x] 5.5 Implement `classifier/batch.py` — batch orchestration and confidence threshold logic
     - Implement `BatchClassifier` with `classify_batch(drive_id, batch_size)` that fetches unclassified entries, separates files/folders, builds summaries, calls LLM provider, applies confidence threshold for priority_review flag, submits results via status transitions
     - Handle per-batch failures: set affected entries to `classification_failed`, don't block other batches
     - _Requirements: 2.1, 2.5, 2.6, 2.7_
 
-  - [ ]* 5.6 Write property tests for classifier output validity (P7)
+  - [x] 5.6 Write property tests for classifier output validity (P7)
     - **Property 7: Classifier output completeness and validity**
     - With a mocked LLM, classifier returns exactly one classification per input Entry; files get non-empty file_class, folders get valid folder_purpose, all confidences in [0.0, 1.0]
     - **Validates: Requirements 2.3, 2.4, 2.8**
 
-  - [ ]* 5.7 Write property tests for classification submission round-trip (P8)
+  - [x] 5.7 Write property tests for classification submission round-trip (P8)
     - **Property 8: Classification submission round-trip**
     - For any unclassified Entries and valid classifications, submitting updates each Entry with correct file_class/folder_purpose, confidence, and classification_status = ai_classified
     - **Validates: Requirements 2.5**
 
-  - [ ]* 5.8 Write property tests for confidence threshold (P9)
+  - [x] 5.8 Write property tests for confidence threshold (P9)
     - **Property 9: Confidence threshold determines priority review flag**
     - For any classified Entry, confidence below threshold → priority_review = True; at or above → priority_review = False
     - **Validates: Requirements 2.7**
 
-- [ ] 6. Checkpoint — Service layer (importer + classifier) complete
+- [x] 6. Checkpoint — Service layer (importer + classifier) complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 7. Implement MCP server tools
