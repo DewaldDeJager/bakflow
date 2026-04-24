@@ -180,23 +180,23 @@ Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, 
     - For any tool with missing/invalid parameters, returns structured error response rather than unhandled exception
     - **Validates: Requirements 6.2**
 
-- [ ] 8. Checkpoint — MCP server complete
+- [x] 8. Checkpoint — MCP server complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Implement Streamlit UI
-  - [ ] 9.1 Implement `ui/app.py` — Streamlit app entry point and navigation
+- [x] 9. Implement Streamlit UI
+  - [x] 9.1 Implement `ui/app.py` — Streamlit app entry point and navigation
     - Set up multi-page Streamlit app with sidebar navigation to Drive Management, Review Queue, Progress Dashboard, and Export pages
     - Configure Streamlit page settings and session state initialization
     - _Requirements: 1.8_
 
-  - [ ] 9.2 Implement `ui/pages/drive_management.py` — drive registration and CSV import
+  - [x] 9.2 Implement `ui/pages/drive_management.py` — drive registration and CSV import
     - Drive registration form: label, volume serial, volume label, capacity
     - Drive list with edit label capability and hardware identifier display
     - CSV import: file upload, drive selector, column mapping override, force re-import toggle
     - Display import results (entries created, rows skipped, skip details)
     - _Requirements: 1.1, 1.2, 1.5, 1.7, 1.8_
 
-  - [ ] 9.3 Implement `ui/pages/review_queue.py` and `ui/components/` — review interface
+  - [x] 9.3 Implement `ui/pages/review_queue.py` and `ui/components/` — review interface
     - Sidebar filters: drive selector, category filter (Folder_Purpose / File_Class), confidence range slider, status filters
     - Entry display grouped by parent folder with expandable cards (path, classification, confidence, size, last_modified)
     - Per-entry action buttons: Include / Exclude / Defer with optional destination and notes fields
@@ -206,20 +206,20 @@ Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, 
     - Implement `ui/components/entry_card.py`, `ui/components/filters.py`, `ui/components/bulk_actions.py`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9_
 
-  - [ ] 9.4 Implement `ui/pages/progress_dashboard.py` — triage progress visualization
+  - [x] 9.4 Implement `ui/pages/progress_dashboard.py` — triage progress visualization
     - Per-drive progress bars for each status dimension (classification, review, decision)
     - Overall completion percentage
     - Drive selector
     - _Requirements: 5.3_
 
-  - [ ] 9.5 Implement `ui/pages/export.py` — manifest preview and export
+  - [x] 9.5 Implement `ui/pages/export.py` — manifest preview and export
     - Decision manifest preview table with filtering by decision_status
     - Export to CSV with columns: source_path, destination_path, entry_type, classification, confidence, decision, notes
     - Export to JSON for programmatic consumption
     - Summary header: Drive UUID, label, volume serial, export timestamp, counts per decision status
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-  - [ ]* 9.6 Write property tests for export round-trip (P14)
+  - [x] 9.6 Write property tests for export round-trip (P14)
     - **Property 14: Export round-trip**
     - Exporting to CSV and parsing back recovers all Entry records with correct columns; same for JSON; header contains correct Drive info and accurate counts
     - **Validates: Requirements 4.2, 4.3, 4.4**
