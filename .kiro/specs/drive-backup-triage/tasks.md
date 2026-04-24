@@ -71,20 +71,20 @@ Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, 
 - [x] 3. Checkpoint — Data layer complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Implement CSV importer
-  - [ ] 4.1 Implement `importer/csv_importer.py` — TreeSize CSV parsing and Entry creation
+- [x] 4. Implement CSV importer
+  - [x] 4.1 Implement `importer/csv_importer.py` — TreeSize CSV parsing and Entry creation
     - Implement `ColumnMapping` dataclass with configurable column names
     - Implement `ImportResult` and `SkipDetail` dataclasses
     - Implement `import_csv(conn, csv_path, drive_id, column_mapping, force)` that parses CSV, infers entry_type from extension when no type column, creates Entries with default statuses, handles re-import conflict detection, skips malformed rows with warnings
     - Write import metadata to `import_log` table
     - _Requirements: 1.2, 1.3, 1.4, 1.5, 1.6_
 
-  - [ ]* 4.2 Write property tests for CSV import round-trip (P2)
+  - [x] 4.2 Write property tests for CSV import round-trip (P2)
     - **Property 2: CSV import round-trip**
     - For any valid CSV content, importing creates exactly one Entry per valid row with matching fields and correct default statuses; ImportResult reports accurate counts
     - **Validates: Requirements 1.2, 1.3, 1.6**
 
-  - [ ]* 4.3 Write property tests for malformed CSV row handling (P3)
+  - [x] 4.3 Write property tests for malformed CSV row handling (P3)
     - **Property 3: Malformed CSV rows are skipped without affecting valid rows**
     - For any CSV with mixed valid/malformed rows, only valid rows produce Entries; ImportResult reports correct skip count and row numbers
     - **Validates: Requirements 1.4**
