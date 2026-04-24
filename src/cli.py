@@ -3,6 +3,11 @@
 import argparse
 import sys
 
+from src.config import AppConfig
+from src.db.schema import init_db
+from src.db.repository import Repository
+from src.importer.csv_importer import import_csv, ConflictError
+
 
 def cmd_run_server(args: argparse.Namespace) -> None:
     """Start the MCP server."""
@@ -14,14 +19,52 @@ def cmd_run_ui(args: argparse.Namespace) -> None:
     print("Not yet implemented")
 
 
-def cmd_import_csv(args: argparse.Namespace) -> None:
-    """Import a TreeSize CSV export into the index."""
-    print("Not yet implemented")
-
-
 def cmd_init_db(args: argparse.Namespace) -> None:
     """Initialize the SQLite database."""
-    print("Not yet implemented")
+    config = AppConfig()
+    db_path = getattr(args, "db_path", None) or config.db_path
+    conn = init_db(db_path)
+    conn.close()
+    print(f"Database initialized at {db_path}")
+
+
+def cmd_import_csv(args: argparse.Namespace) -> None:
+    """Import a TreeSize CSV export into the index."""
+    config = AppConfig()
+    db_path = config.db_path
+    conn = init_db(db_path)
+    repo = Repository(conn)
+
+    try:
+        # Create or reuse a drive
+        drive = repo.create_drive(
+            label=args.drive_label,
+            volume_serial=args.volume_serial,
+            volume_label=args.volume_label,
+            capacity_bytes=int(args.capacity) if args.capacity else None,
+        )
+
+        result = import_csv(
+            conn=conn,
+            csv_path=args.csv_path,
+            drive_id=drive.id,
+            force=args.force,
+            skip_rows=args.skip_rows,
+        )
+
+        print(f"Drive registered: {drive.id} ({drive.label})")
+        print(f"Entries created: {result.entries_created}")
+        print(f"Rows skipped:    {result.rows_skipped}")
+        for detail in result.skip_details:
+            print(f"  Row {detail.row_number}: {detail.reason}")
+    except ConflictError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    except FileNotFoundError:
+        print(f"Error: CSV file not found: {args.csv_path}", file=sys.stderr)
+        sys.exit(1)
+    finally:
+        conn.close()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,8 +81,14 @@ def build_parser() -> argparse.ArgumentParser:
     import_parser = subparsers.add_parser("import-csv", help="Import a TreeSize CSV")
     import_parser.add_argument("csv_path", help="Path to the CSV file")
     import_parser.add_argument("--drive-label", required=True, help="Label for the drive")
+    import_parser.add_argument("--volume-serial", default=None, help="Volume serial number")
+    import_parser.add_argument("--volume-label", default=None, help="Volume label")
+    import_parser.add_argument("--capacity", default=None, help="Drive capacity in bytes")
+    import_parser.add_argument("--force", action="store_true", help="Force re-import if entries exist")
+    import_parser.add_argument("--skip-rows", type=int, default=0, help="Number of preamble lines to skip before the CSV header")
 
-    subparsers.add_parser("init-db", help="Initialize the database")
+    init_parser = subparsers.add_parser("init-db", help="Initialize the database")
+    init_parser.add_argument("--db-path", default=None, help="Path to the database file")
 
     return parser
 

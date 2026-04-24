@@ -225,14 +225,19 @@ Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, 
     - **Validates: Requirements 4.2, 4.3, 4.4**
 
 - [ ] 10. Wire CLI entry points and integration
-  - [ ] 10.1 Complete `cli.py` — wire all entry points
+  - [x] 10.1 Complete `cli.py` — wire all entry points
     - `import-csv` command: accepts CSV path, drive label, optional hardware IDs, calls importer
     - `run-server` command: starts MCP server with configured DB path
     - `run-ui` command: launches Streamlit app
     - `init-db` command: initializes database at configured path
     - _Requirements: 6.3_
 
-  - [ ]* 10.2 Write integration tests for MCP server tool registration
+  - [ ] 10.2 Wire `run-server` and `run-ui` CLI stubs to their implementations
+    - `run-server`: start the MCP server via `mcp_server/server.py` with configured DB path
+    - `run-ui`: launch the Streamlit app via `subprocess` or `streamlit.cli` pointing at `ui/app.py`
+    - _Requirements: 6.3_
+
+  - [ ]* 10.3 Write integration tests for MCP server tool registration
     - Verify all 7 tools are registered and callable
     - Test concurrent MCP tool calls with database-level locking
     - _Requirements: 6.1, 6.5_
