@@ -7,7 +7,9 @@ in the Index with default statuses, and logs import metadata.
 from __future__ import annotations
 
 import csv
+import io
 import os
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -66,6 +68,23 @@ class ConflictError(Exception):
 # Helpers
 # ---------------------------------------------------------------------------
 
+# Pattern to fix unquoted comma-decimal percent values that break CSV parsing.
+# Matches e.g. ``100,0 %`` or ``0,4 %`` that are NOT inside quotes.
+_PERCENT_COMMA_RE = re.compile(r"(?<=,)(\d+),(\d+ %)")
+
+
+def _sanitise_csv_line(line: str) -> str:
+    """Fix TreeSize CSV quirks in a single line.
+
+    - Replaces non-breaking spaces (\\xa0) with regular spaces.
+    - Fixes comma-decimal percent values (``100,0 %`` → ``100.0 %``) that
+      would otherwise be mis-parsed as an extra CSV field.
+    """
+    line = line.replace("\xa0", " ")
+    line = _PERCENT_COMMA_RE.sub(r"\1.\2", line)
+    return line
+
+
 # Common file extensions — used to infer entry_type when no Type column exists
 _FILE_EXTENSIONS = frozenset({
     ".txt", ".doc", ".docx", ".pdf", ".xls", ".xlsx", ".ppt", ".pptx",
@@ -114,12 +133,29 @@ def _extract_name(path: str) -> str:
 
 
 def _parse_size(raw: str) -> int:
-    """Parse a size string into bytes. Handles plain integers and common suffixes."""
+    """Parse a size string into bytes. Handles plain integers and common suffixes.
+
+    Also handles TreeSize format like ``85 218 497 486 Bytes`` where spaces
+    are used as thousands separators.
+    """
     raw = raw.strip()
     if not raw:
         return 0
 
-    # Try plain integer first
+    # Strip a trailing "Bytes" / "bytes" suffix first (TreeSize format)
+    raw_lower = raw.lower()
+    if raw_lower.endswith("bytes"):
+        raw = raw[: -len("bytes")].strip()
+
+    # Remove space/thin-space thousands separators so "85 218 497 486" → "85218497486"
+    raw = raw.replace("\u202f", "").replace(" ", "")
+
+    # Replace comma decimal separator with dot (e.g. "1,5" → "1.5")
+    # but only when it looks like a decimal (single comma with digits on both sides)
+    if raw.count(",") == 1:
+        raw = raw.replace(",", ".")
+
+    # Try plain integer
     try:
         return int(raw)
     except ValueError:
@@ -157,6 +193,8 @@ def _parse_timestamp(raw: str) -> str | None:
     formats = [
         "%Y-%m-%d %H:%M:%S",
         "%Y-%m-%dT%H:%M:%S",
+        "%Y/%m/%d %H:%M:%S",
+        "%Y/%m/%d",
         "%m/%d/%Y %I:%M:%S %p",
         "%m/%d/%Y %H:%M:%S",
         "%m/%d/%Y %I:%M %p",
@@ -190,6 +228,7 @@ def import_csv(
     drive_id: str,
     column_mapping: ColumnMapping | None = None,
     force: bool = False,
+    skip_rows: int = 0,
 ) -> ImportResult:
     """Parse a TreeSize CSV and create Entry records in the Index.
 
@@ -199,6 +238,7 @@ def import_csv(
         drive_id: UUID of the Drive to associate entries with.
         column_mapping: Optional custom column name mapping.
         force: If True, allow importing into a drive that already has entries.
+        skip_rows: Number of preamble lines to skip before the header row.
 
     Returns:
         ImportResult with counts and skip details.
@@ -232,7 +272,14 @@ def import_csv(
 
     # Determine if the CSV has a header with the expected type column
     with open(csv_path, newline="", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
+        # Skip preamble lines (e.g. TreeSize report metadata)
+        for _ in range(skip_rows):
+            f.readline()
+
+        # Sanitise remaining lines to fix TreeSize quirks (non-breaking
+        # spaces, comma-decimal percent values) before CSV parsing.
+        sanitised = io.StringIO("".join(_sanitise_csv_line(l) for l in f))
+        reader = csv.DictReader(sanitised)
         if reader.fieldnames is None:
             return ImportResult(
                 drive_id=drive_id,
@@ -247,7 +294,7 @@ def import_csv(
 
         batch: list[tuple] = []
 
-        for row_idx, row in enumerate(reader, start=2):  # row 1 is header
+        for row_idx, row in enumerate(reader, start=skip_rows + 2):  # account for skipped + header
             try:
                 # Path is required
                 raw_path = row.get(column_mapping.path, "").strip()
