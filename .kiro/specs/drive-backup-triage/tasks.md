@@ -133,49 +133,49 @@ Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, 
 - [x] 6. Checkpoint — Service layer (importer + classifier) complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Implement MCP server tools
-  - [ ] 7.1 Implement `mcp_server/server.py` — all 7 MCP tool definitions
+- [x] 7. Implement MCP server tools
+  - [x] 7.1 Implement `mcp_server/server.py` — all 7 MCP tool definitions
     - Register tools with FastMCP: `get_unclassified_batch`, `get_folder_summary`, `submit_classification`, `get_review_queue`, `record_decision`, `get_drive_progress`, `get_decision_manifest`
     - Each tool handler: resolve drive identifier (UUID or volume serial), validate parameters, delegate to Repository/status.py, return structured dict responses
     - Implement consistent error response format for all tools
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-  - [ ]* 7.2 Write property tests for unclassified batch filtering (P5)
+  - [x] 7.2 Write property tests for unclassified batch filtering (P5)
     - **Property 5: Unclassified batch filtering and size limit**
     - For any Drive with mixed statuses, get_unclassified_batch returns only entries with classification_status in {unclassified, needs_reclassification}, count ≤ batch_size
     - **Validates: Requirements 2.1**
 
-  - [ ]* 7.3 Write property tests for folder summary aggregation (P6)
+  - [x] 7.3 Write property tests for folder summary aggregation (P6)
     - **Property 6: Folder summary aggregation correctness**
     - For any folder, summary returns correct file_count, total_size, file type distribution, and subfolder list
     - **Validates: Requirements 2.2**
 
-  - [ ]* 7.4 Write property tests for review queue filtering (P10)
+  - [x] 7.4 Write property tests for review queue filtering (P10)
     - **Property 10: Review queue filtering and ordering**
     - get_review_queue returns only entries where classification_status = ai_classified AND review_status = pending_review, ordered by confidence ascending
     - **Validates: Requirements 3.1**
 
-  - [ ]* 7.5 Write property tests for decision recording (P11)
+  - [x] 7.5 Write property tests for decision recording (P11)
     - **Property 11: Decision recording round-trip**
     - For any ai_classified Entry and valid decision, recording sets review_status = reviewed and decision_status to chosen value; destination and notes persisted exactly
     - **Validates: Requirements 3.4**
 
-  - [ ]* 7.6 Write property tests for cascade behavior (P12)
+  - [x] 7.6 Write property tests for cascade behavior (P12)
     - **Property 12: Cascade applies decision only to undecided children**
     - Cascading a decision updates only children with decision_status = undecided; leaves others unchanged
     - **Validates: Requirements 3.7**
 
-  - [ ]* 7.7 Write property tests for decision manifest filtering (P13)
+  - [x] 7.7 Write property tests for decision manifest filtering (P13)
     - **Property 13: Decision manifest contains only matching entries**
     - get_decision_manifest returns only entries where review_status = reviewed AND decision_status matches filter
     - **Validates: Requirements 4.1**
 
-  - [ ]* 7.8 Write property tests for progress aggregation (P16)
+  - [x] 7.8 Write property tests for progress aggregation (P16)
     - **Property 16: Progress aggregation correctness**
     - get_drive_progress returns counts per status dimension matching actual Entry counts; completion % = reviewed / total
     - **Validates: Requirements 5.3**
 
-  - [ ]* 7.9 Write property tests for MCP parameter validation (P20)
+  - [x] 7.9 Write property tests for MCP parameter validation (P20)
     - **Property 20: MCP tool parameter validation**
     - For any tool with missing/invalid parameters, returns structured error response rather than unhandled exception
     - **Validates: Requirements 6.2**
