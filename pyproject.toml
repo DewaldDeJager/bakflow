@@ -22,6 +22,9 @@ dev = [
 [project.scripts]
 drive-backup-triage = "src.cli:main"
 
+[tool.setuptools.packages.find]
+include = ["src*"]
+
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
