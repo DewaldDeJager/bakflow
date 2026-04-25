@@ -103,6 +103,7 @@ Each Entry is tracked across three independent status fields. These fields are o
 6. IF the Ollama service is unreachable, THEN THE Classifier SHALL return a descriptive error and set the `classification_status` of affected Entries to `classification_failed`.
 7. WHEN the Classifier assigns a Confidence_Rating below a configurable threshold, THE Classifier SHALL flag the Entry as requiring priority human review.
 8. THE Classifier SHALL only assign Folder_Purpose labels that exist in the Folder_Purpose_Taxonomy; the Classifier SHALL not invent new categories.
+9. WHEN the MCP_Server receives a `classify_batch` request with a drive identifier and optional batch size, THE MCP_Server SHALL fetch unclassified entries, classify them via the configured LLM provider, write the results (including status transitions and priority_review flags) back to the Index, and return a summary of classified and failed counts.
 
 ### Requirement 3: Human Review and Decision Recording
 
@@ -150,7 +151,7 @@ Each Entry is tracked across three independent status fields. These fields are o
 
 #### Acceptance Criteria
 
-1. THE MCP_Server SHALL expose the following tools via the Model Context Protocol: `get_unclassified_batch`, `get_folder_summary`, `submit_classification`, `get_review_queue`, `record_decision`, `get_drive_progress`, and `get_decision_manifest`.
+1. THE MCP_Server SHALL expose the following tools via the Model Context Protocol: `get_unclassified_batch`, `get_folder_summary`, `submit_classification`, `classify_batch`, `get_review_queue`, `record_decision`, `get_drive_progress`, and `get_decision_manifest`.
 2. WHEN any MCP tool is called with missing or invalid parameters, THE MCP_Server SHALL return a structured error response describing the validation failure.
 3. THE MCP_Server SHALL be implemented in Python using the MCP SDK.
 4. THE MCP_Server SHALL connect to the Index (SQLite database) as its sole data source for all tool operations.

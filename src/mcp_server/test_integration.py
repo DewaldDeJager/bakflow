@@ -1,7 +1,7 @@
 """Integration tests for MCP server tool registration and concurrent access.
 
 Verifies:
-- All 7 tools are registered and callable via FastMCP
+- All 8 tools are registered and callable via FastMCP
 - Each tool has the expected name and input schema
 - Concurrent MCP tool calls with database-level locking don't corrupt data
 
@@ -25,13 +25,14 @@ from src.mcp_server.server import mcp
 
 
 # ---------------------------------------------------------------------------
-# Expected tools — the 7 MCP tools from Requirement 6.1
+# Expected tools — the 8 MCP tools from Requirement 6.1
 # ---------------------------------------------------------------------------
 
 EXPECTED_TOOLS = {
     "get_unclassified_batch",
     "get_folder_summary",
     "submit_classification",
+    "classify_batch",
     "get_review_queue",
     "record_decision",
     "get_drive_progress",
@@ -104,10 +105,10 @@ def _seed_drive_with_entries(repo, conn, count=5):
 # ---------------------------------------------------------------------------
 
 class TestToolRegistration:
-    """Verify all 7 tools are registered and discoverable via FastMCP."""
+    """Verify all 8 tools are registered and discoverable via FastMCP."""
 
-    def test_all_seven_tools_registered(self):
-        """list_tools returns exactly the 7 expected tools."""
+    def test_all_eight_tools_registered(self):
+        """list_tools returns exactly the 8 expected tools."""
         tools = asyncio.run(mcp.list_tools())
         tool_names = {t.name for t in tools}
         assert tool_names == EXPECTED_TOOLS

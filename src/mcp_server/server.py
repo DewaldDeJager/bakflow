@@ -1,9 +1,10 @@
 """MCP server tool definitions for Drive Backup Triage.
 
-Exposes 7 tools via FastMCP:
+Exposes 8 tools via FastMCP:
 - get_unclassified_batch
 - get_folder_summary
 - submit_classification
+- classify_batch
 - get_review_queue
 - record_decision
 - get_drive_progress
@@ -21,6 +22,9 @@ from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 
+from src.classifier.batch import BatchClassifier
+from src.classifier.provider import ClassifierConfig, create_provider
+from src.config import AppConfig
 from src.db.models import Entry
 from src.db.repository import Repository
 from src.db.status import InvalidTransitionError, apply_transition
@@ -33,15 +37,34 @@ mcp = FastMCP("drive-backup-triage")
 
 _conn: sqlite3.Connection | None = None
 _repo: Repository | None = None
+_batch_classifier: BatchClassifier | None = None
 
 
 def init_server(db_path: str) -> FastMCP:
-    """Initialise the module-level connection and repository, return the app."""
-    global _conn, _repo
+    """Initialise the module-level connection, repository, and classifier, return the app."""
+    global _conn, _repo, _batch_classifier
     _conn = sqlite3.connect(db_path)
     _conn.execute("PRAGMA journal_mode=WAL")
     _conn.execute("PRAGMA foreign_keys=ON")
     _repo = Repository(_conn)
+
+    app_config = AppConfig()
+    classifier_config = ClassifierConfig(
+        provider=app_config.llm_provider,
+        model=app_config.model,
+        base_url=app_config.base_url,
+        api_key=app_config.api_key,
+        confidence_threshold=app_config.confidence_threshold,
+        batch_size=app_config.batch_size,
+    )
+    provider = create_provider(classifier_config)
+    _batch_classifier = BatchClassifier(
+        provider=provider,
+        repo=_repo,
+        conn=_conn,
+        config=classifier_config,
+    )
+
     return mcp
 
 
@@ -101,12 +124,15 @@ def _entry_to_dict(entry: Entry) -> dict:
 
 
 @mcp.tool()
-async def get_unclassified_batch(drive_id: str, batch_size: int = 50) -> dict:
+async def get_unclassified_batch(
+    drive_id: str, batch_size: int = 50, include_failed: bool = False
+) -> dict:
     """Get a batch of unclassified entries for a drive.
 
     Args:
         drive_id: UUID of the drive (also accepts volume serial number)
         batch_size: Maximum number of entries to return (default 50)
+        include_failed: Also include entries with classification_failed status for retry (default False)
     """
     if not drive_id:
         return _error_response(
@@ -124,10 +150,11 @@ async def get_unclassified_batch(drive_id: str, batch_size: int = 50) -> dict:
         return drive
 
     repo = get_repo()
-    entries = repo.get_unclassified_batch(drive.id, batch_size)
+    entries = repo.get_unclassified_batch(drive.id, batch_size, include_failed=include_failed)
     return {
         "drive_id": drive.id,
         "batch_size": batch_size,
+        "include_failed": include_failed,
         "count": len(entries),
         "entries": [_entry_to_dict(e) for e in entries],
     }
@@ -281,6 +308,68 @@ async def submit_classification(classifications: list[dict]) -> dict:
         "submitted": succeeded,
         "failed": failed,
         "errors": errors,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Tool: classify_batch
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+async def classify_batch(
+    drive_id: str, batch_size: int = 50, include_failed: bool = False
+) -> dict:
+    """Fetch unclassified entries and classify them via the configured LLM.
+
+    This is an end-to-end operation: it fetches a batch of unclassified
+    entries, sends them to the LLM provider for classification, and writes
+    the results back to the database (including status transitions and
+    confidence-based priority_review flags).
+
+    Args:
+        drive_id: UUID of the drive (also accepts volume serial number)
+        batch_size: Maximum number of entries to classify (default 50)
+        include_failed: Also retry entries with classification_failed status (default False)
+    """
+    if not drive_id:
+        return _error_response(
+            "MISSING_PARAMETER", "drive_id is required", {"parameter": "drive_id"}
+        )
+    if batch_size < 1:
+        return _error_response(
+            "INVALID_PARAMETER",
+            "batch_size must be a positive integer",
+            {"parameter": "batch_size", "value": batch_size},
+        )
+
+    drive = _resolve_drive(drive_id)
+    if isinstance(drive, dict):
+        return drive
+
+    if _batch_classifier is None:
+        return _error_response(
+            "SERVER_NOT_READY",
+            "Batch classifier not initialised — check LLM provider configuration",
+        )
+
+    try:
+        result = await _batch_classifier.classify_batch(
+            drive.id, batch_size, include_failed=include_failed
+        )
+    except Exception as exc:
+        return _error_response(
+            "CLASSIFICATION_ERROR",
+            f"Batch classification failed: {exc}",
+        )
+
+    return {
+        "drive_id": drive.id,
+        "files_classified": result.files_classified,
+        "folders_classified": result.folders_classified,
+        "files_failed": result.files_failed,
+        "folders_failed": result.folders_failed,
+        "errors": result.errors,
     }
 
 

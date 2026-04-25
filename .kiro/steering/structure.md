@@ -13,7 +13,7 @@ src/
 │   └── test_*.py        # Co-located tests (unit + property-based)
 ├── importer/            # CSV import from TreeSize exports
 ├── classifier/          # LLM classification (provider protocol, prompts, batch orchestration)
-├── mcp_server/          # FastMCP tool definitions (7 tools)
+├── mcp_server/          # FastMCP tool definitions (8 tools)
 └── ui/                  # Streamlit multi-page app
     ├── pages/           # Page modules (drive management, review queue, progress, export)
     └── components/      # Reusable UI components (entry card, filters, bulk actions)

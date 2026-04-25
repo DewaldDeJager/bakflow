@@ -55,7 +55,7 @@ class BatchClassifier:
         self._config = config
 
     async def classify_batch(
-        self, drive_id: str, batch_size: int | None = None
+        self, drive_id: str, batch_size: int | None = None, *, include_failed: bool = False
     ) -> BatchResult:
         """Fetch unclassified entries and classify them via the LLM provider.
 
@@ -67,15 +67,20 @@ class BatchClassifier:
         5. Apply confidence threshold for priority_review flag.
         6. Submit results via status transitions.
 
-        Per-batch failures set affected entries to ``classification_failed``
-        and do not block other batches.
+        Per-entry failures set affected entries to ``classification_failed``
+        and do not block other entries.
+
+        When *include_failed* is True, entries with ``classification_failed``
+        are also fetched so they can be retried.
         """
         if batch_size is None:
             batch_size = self._config.batch_size
 
         result = BatchResult()
 
-        entries = self._repo.get_unclassified_batch(drive_id, batch_size)
+        entries = self._repo.get_unclassified_batch(
+            drive_id, batch_size, include_failed=include_failed
+        )
         if not entries:
             return result
 
@@ -101,24 +106,31 @@ class BatchClassifier:
     async def _classify_folders(
         self, folders: list[Entry], result: BatchResult
     ) -> None:
-        """Build folder summaries and classify via the LLM provider."""
-        summaries = [self._build_folder_summary(f) for f in folders]
+        """Build folder summaries and classify via the LLM provider.
 
-        try:
-            classifications = await self._provider.classify_folders(summaries)
-        except Exception as exc:
-            logger.error("Folder classification batch failed: %s", exc)
-            result.errors.append(f"Folder batch failed: {exc}")
-            self._mark_entries_failed(folders)
-            result.folders_failed += len(folders)
-            return
-
-        # Index classifications by entry_id for lookup
-        classified_map = {c.entry_id: c for c in classifications}
-
+        Folders are classified individually so that a single failure does
+        not block the rest of the batch.
+        """
         for folder in folders:
-            classification = classified_map.get(folder.id)
-            if classification is None:
+            summary = self._build_folder_summary(folder)
+
+            try:
+                classifications = await self._provider.classify_folders([summary])
+            except Exception as exc:
+                logger.error(
+                    "Folder classification failed for entry %d (%s): %s",
+                    folder.id,
+                    folder.path,
+                    exc,
+                )
+                result.errors.append(
+                    f"Folder {folder.id} ({folder.path}) failed: {exc}"
+                )
+                self._mark_entry_failed(folder)
+                result.folders_failed += 1
+                continue
+
+            if not classifications:
                 logger.warning(
                     "No classification returned for folder entry %d, marking failed",
                     folder.id,
@@ -126,6 +138,13 @@ class BatchClassifier:
                 self._mark_entry_failed(folder)
                 result.folders_failed += 1
                 continue
+
+            classification = classifications[0]
+            # Correct entry_id if the provider returned a different one
+            if classification.entry_id != folder.id:
+                classification = classification.model_copy(
+                    update={"entry_id": folder.id}
+                )
 
             self._submit_folder_classification(folder, classification)
             result.folders_classified += 1

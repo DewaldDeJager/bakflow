@@ -426,6 +426,19 @@ async def submit_classification(classifications: list[dict]) -> dict:
     """
 
 @mcp.tool()
+async def classify_batch(drive_id: str, batch_size: int = 50) -> dict:
+    """Fetch unclassified entries and classify them via the configured LLM.
+
+    End-to-end operation: fetches unclassified entries, sends them to the
+    LLM provider, writes results back to the database (status transitions
+    and confidence-based priority_review flags).
+
+    Args:
+        drive_id: UUID of the drive (also accepts volume serial number)
+        batch_size: Maximum number of entries to classify (default 50)
+    """
+
+@mcp.tool()
 async def get_review_queue(
     drive_id: str,
     category: str | None = None,
@@ -492,7 +505,7 @@ Each tool handler:
 1. Resolves drive identifier (UUID or volume serial lookup).
 2. Validates parameters (returns structured error on failure).
 3. Acquires a database connection from a connection pool.
-4. Delegates to `Repository` and `status.py` for data operations.
+4. Delegates to `Repository`, `status.py`, or `BatchClassifier` for data/classification operations.
 5. Returns structured dict responses.
 
 ### 5. Streamlit UI (`ui/`)
@@ -958,7 +971,7 @@ tests/
 │   ├── test_status_properties.py      # P17, P18, P19
 │   └── test_mcp_validation_properties.py  # P20
 └── integration/
-    ├── test_mcp_server.py       # Smoke: all 7 tools registered (Req 6.1)
+    ├── test_mcp_server.py       # Smoke: all 8 tools registered (Req 6.1)
     ├── test_concurrency.py      # Concurrent MCP calls (Req 6.5)
     └── test_llm_integration.py  # Live provider tests: Ollama + OpenAI (optional, requires running services)
 ```

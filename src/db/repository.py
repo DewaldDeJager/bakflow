@@ -208,19 +208,27 @@ class Repository:
     # Batching
     # -----------------------------------------------------------------------
 
-    def get_unclassified_batch(self, drive_id: str, batch_size: int) -> list[Entry]:
+    def get_unclassified_batch(
+        self, drive_id: str, batch_size: int, *, include_failed: bool = False
+    ) -> list[Entry]:
         """Return up to *batch_size* entries needing classification.
 
         Selects entries where ``classification_status`` is ``'unclassified'``
-        or ``'needs_reclassification'``.  (Req 2.1)
+        or ``'needs_reclassification'``.  When *include_failed* is True,
+        entries with ``'classification_failed'`` are also included so they
+        can be retried.  (Req 2.1)
         """
+        statuses = ["unclassified", "needs_reclassification"]
+        if include_failed:
+            statuses.append("classification_failed")
+        placeholders = ", ".join("?" for _ in statuses)
         cols = self._entry_columns()
         rows = self._conn.execute(
-            "SELECT * FROM entries "
-            "WHERE drive_id = ? "
-            "  AND classification_status IN ('unclassified', 'needs_reclassification') "
-            "LIMIT ?",
-            (drive_id, batch_size),
+            f"SELECT * FROM entries "
+            f"WHERE drive_id = ? "
+            f"  AND classification_status IN ({placeholders}) "
+            f"LIMIT ?",
+            (drive_id, *statuses, batch_size),
         ).fetchall()
         return [_row_to_entry(r, cols) for r in rows]
 

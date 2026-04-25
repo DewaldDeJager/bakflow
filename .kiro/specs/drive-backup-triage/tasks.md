@@ -134,11 +134,12 @@ Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, 
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 7. Implement MCP server tools
-  - [x] 7.1 Implement `mcp_server/server.py` — all 7 MCP tool definitions
-    - Register tools with FastMCP: `get_unclassified_batch`, `get_folder_summary`, `submit_classification`, `get_review_queue`, `record_decision`, `get_drive_progress`, `get_decision_manifest`
-    - Each tool handler: resolve drive identifier (UUID or volume serial), validate parameters, delegate to Repository/status.py, return structured dict responses
+  - [x] 7.1 Implement `mcp_server/server.py` — all 8 MCP tool definitions
+    - Register tools with FastMCP: `get_unclassified_batch`, `get_folder_summary`, `submit_classification`, `classify_batch`, `get_review_queue`, `record_decision`, `get_drive_progress`, `get_decision_manifest`
+    - Each tool handler: resolve drive identifier (UUID or volume serial), validate parameters, delegate to Repository/status.py/BatchClassifier, return structured dict responses
     - Implement consistent error response format for all tools
-    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
+    - `classify_batch` wires up the `BatchClassifier` to provide end-to-end LLM classification via a single MCP call
+    - _Requirements: 2.9, 6.1, 6.2, 6.3, 6.4, 6.5_
 
   - [x] 7.2 Write property tests for unclassified batch filtering (P5)
     - **Property 5: Unclassified batch filtering and size limit**
@@ -238,7 +239,7 @@ Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, 
     - _Requirements: 6.3_
 
   - [x] 10.3 Write integration tests for MCP server tool registration
-    - Verify all 7 tools are registered and callable
+    - Verify all 8 tools are registered and callable
     - Test concurrent MCP tool calls with database-level locking
     - _Requirements: 6.1, 6.5_
 
