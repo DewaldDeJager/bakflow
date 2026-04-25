@@ -357,3 +357,40 @@ class TestCsvImportRoundTrip:
             os.unlink(db_path)
             if csv_path:
                 os.unlink(csv_path)
+
+    def test_extension_extracted_from_filename_not_full_path(self):
+        """Extension must come from the filename, not a dot in a parent directory."""
+        conn, repo, db_path = _make_temp_db()
+        csv_path = None
+        try:
+            drive = repo.create_drive(label="test-drive")
+            rows = [
+                {"Path": "F:\\Games\\MyGame.app\\Contents\\MacOS\\binary", "Size": "100"},
+                {"Path": "F:\\Games\\MyGame.app\\Contents\\MacOS\\lib\\helper.dll", "Size": "200"},
+                {"Path": "F:\\Games\\v1.2.3\\readme.txt", "Size": "50"},
+                {"Path": "F:\\Games\\no_ext_file", "Size": "10"},
+            ]
+            csv_path = _write_csv(rows)
+
+            import_csv(conn, csv_path, drive.id)
+
+            entries = {
+                e.name: e for e in repo.get_entries_by_drive(drive.id)
+            }
+
+            # "binary" has no extension — the .app in the parent dir must not leak
+            assert entries["binary"].extension is None
+
+            # "helper.dll" should have .dll, not something involving .app
+            assert entries["helper.dll"].extension == ".dll"
+
+            # "readme.txt" should have .txt, not something involving .2
+            assert entries["readme.txt"].extension == ".txt"
+
+            # "no_ext_file" has no extension
+            assert entries["no_ext_file"].extension is None
+        finally:
+            conn.close()
+            os.unlink(db_path)
+            if csv_path:
+                os.unlink(csv_path)

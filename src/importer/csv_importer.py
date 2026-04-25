@@ -123,7 +123,8 @@ def _infer_entry_type(path: str, extension: str | None) -> str:
 
 def _extract_extension(path: str) -> str | None:
     """Extract the file extension from a path, or None if there isn't one."""
-    _, ext = os.path.splitext(path)
+    name = os.path.basename(path.rstrip("/\\"))
+    _, ext = os.path.splitext(name)
     return ext.lower() if ext else None
 
 
