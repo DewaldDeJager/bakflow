@@ -1,4 +1,4 @@
-"""CLI entry points for Drive Backup Triage."""
+"""CLI entry points for bakflow."""
 
 import argparse
 import sys
@@ -93,8 +93,8 @@ def cmd_import_csv(args: argparse.Namespace) -> None:
 def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser with all subcommands."""
     parser = argparse.ArgumentParser(
-        prog="drive-backup-triage",
-        description="AI-assisted drive backup triage tool",
+        prog="bakflow",
+        description="AI-assisted backup workflow tool",
     )
     subparsers = parser.add_subparsers(dest="command")
 

@@ -1,4 +1,4 @@
-"""MCP server tool definitions for Drive Backup Triage.
+"""MCP server tool definitions for bakflow.
 
 Exposes 8 tools via FastMCP:
 - get_unclassified_batch
@@ -29,7 +29,7 @@ from src.db.models import Entry
 from src.db.repository import Repository
 from src.db.status import InvalidTransitionError, apply_transition
 
-mcp = FastMCP("drive-backup-triage")
+mcp = FastMCP("bakflow")
 
 # ---------------------------------------------------------------------------
 # Module-level connection holder (set via init_server)

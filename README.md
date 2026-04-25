@@ -1,4 +1,4 @@
-# Drive Backup Triage
+# bakflow
 
 AI-assisted tool for classifying and triaging files on hard drive backups. Import a [TreeSize](https://www.jam-software.com/treesize) CSV export, let an LLM classify each entry by purpose and importance, then review and make include/exclude/defer decisions via a Streamlit UI.
 
@@ -9,10 +9,10 @@ AI-assisted tool for classifying and triaging files on hard drive backups. Impor
 pip install -e ".[dev]"
 
 # Initialize the database
-drive-backup-triage init-db
+bakflow init-db
 
 # Import a TreeSize CSV
-drive-backup-triage import-csv THREADRIPPER_F.csv --drive-label "Threadripper F:" --skip-rows 4
+bakflow import-csv THREADRIPPER_F.csv --drive-label "Threadripper F:" --skip-rows 4
 ```
 
 ## Requirements
@@ -27,7 +27,7 @@ drive-backup-triage import-csv THREADRIPPER_F.csv --drive-label "Threadripper F:
 Creates the SQLite database with all required tables, indexes, and triggers.
 
 ```bash
-drive-backup-triage init-db [--db-path PATH]
+bakflow init-db [--db-path PATH]
 ```
 
 | Flag | Default | Description |
@@ -39,7 +39,7 @@ drive-backup-triage init-db [--db-path PATH]
 Imports a TreeSize CSV export into the database, registering a drive and creating entries for every file and folder in the listing.
 
 ```bash
-drive-backup-triage import-csv <csv_path> --drive-label <label> [options]
+bakflow import-csv <csv_path> --drive-label <label> [options]
 ```
 
 | Argument / Flag | Required | Default | Description |
@@ -57,7 +57,7 @@ drive-backup-triage import-csv <csv_path> --drive-label <label> [options]
 Starts the MCP server (FastMCP) exposing triage tools to LLM clients.
 
 ```bash
-drive-backup-triage run-server [--transport stdio|sse|streamable-http] [--db-path PATH]
+bakflow run-server [--transport stdio|sse|streamable-http] [--db-path PATH]
 ```
 
 | Flag | Default | Description |
@@ -72,7 +72,7 @@ See [MCP Server](#mcp-server) below for tool descriptions and client configurati
 Launches the Streamlit review UI.
 
 ```bash
-drive-backup-triage run-ui
+bakflow run-ui
 ```
 
 ## Importing TreeSize CSVs
@@ -147,13 +147,13 @@ To connect an MCP client to the server, point it at the `run-server` CLI command
 ```json
 {
   "mcpServers": {
-    "drive-backup-triage": {
-      "command": "./.venv/bin/drive-backup-triage",
+    "bakflow": {
+      "command": "./.venv/bin/bakflow",
       "args": ["run-server", "--transport", "stdio"],
       "env": {
-        "DBT_LLM_PROVIDER": "ollama",
-        "DBT_MODEL": "llama3.2",
-        "DBT_BASE_URL": "http://localhost:11434",
+        "BF_LLM_PROVIDER": "ollama",
+        "BF_MODEL": "llama3.2",
+        "BF_BASE_URL": "http://localhost:11434",
         "OLLAMA_API_KEY": "your-key-here (only needed for Ollama Cloud)"
       },
       "disabled": false,
@@ -168,13 +168,13 @@ For Claude Desktop, add the equivalent block to your `claude_desktop_config.json
 ```json
 {
   "mcpServers": {
-    "drive-backup-triage": {
-      "command": "/path/to/project/.venv/bin/drive-backup-triage",
+    "bakflow": {
+      "command": "/path/to/project/.venv/bin/bakflow",
       "args": ["run-server", "--transport", "stdio"],
       "env": {
-        "DBT_LLM_PROVIDER": "ollama",
-        "DBT_MODEL": "llama3.2",
-        "DBT_BASE_URL": "http://localhost:11434",
+        "BF_LLM_PROVIDER": "ollama",
+        "BF_MODEL": "llama3.2",
+        "BF_BASE_URL": "http://localhost:11434",
         "OLLAMA_API_KEY": "your-key-here (only needed for Ollama Cloud)"
       }
     }
@@ -188,14 +188,14 @@ The server reads its configuration from environment variables (set via `env` in 
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DBT_DB_PATH` | `drive_triage.db` | Path to the SQLite database |
-| `DBT_LLM_PROVIDER` | `ollama` | LLM provider (`ollama` or `openai`) |
-| `DBT_MODEL` | `llama3.2` | Model name to use for classification |
-| `DBT_BASE_URL` | `http://localhost:11434` | Provider API base URL |
-| `DBT_API_KEY` | — | API key (required for OpenAI) |
+| `BF_DB_PATH` | `drive_triage.db` | Path to the SQLite database |
+| `BF_LLM_PROVIDER` | `ollama` | LLM provider (`ollama` or `openai`) |
+| `BF_MODEL` | `llama3.2` | Model name to use for classification |
+| `BF_BASE_URL` | `http://localhost:11434` | Provider API base URL |
+| `BF_API_KEY` | — | API key (required for OpenAI) |
 | `OLLAMA_API_KEY` | — | API key for Ollama Cloud (read by the `ollama` SDK; not needed for local Ollama) |
-| `DBT_CONFIDENCE_THRESHOLD` | `0.7` | Entries below this confidence are flagged for priority review |
-| `DBT_BATCH_SIZE` | `50` | Default batch size for classification |
+| `BF_CONFIDENCE_THRESHOLD` | `0.7` | Entries below this confidence are flagged for priority review |
+| `BF_BATCH_SIZE` | `50` | Default batch size for classification |
 
 ### Typical Workflow via MCP
 

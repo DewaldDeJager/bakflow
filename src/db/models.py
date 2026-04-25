@@ -1,4 +1,4 @@
-"""Pydantic models — shared data contract for the drive backup triage system.
+"""Pydantic models — shared data contract for the bakflow system.
 
 All models mirror the SQLite schema defined in schema.py and serve as the
 canonical Python representation used across importer, classifier, MCP server,

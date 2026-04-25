@@ -1,8 +1,8 @@
-# Implementation Plan: Drive Backup Triage MVP
+# Implementation Plan: bakflow MVP
 
 ## Overview
 
-Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, status engine, repository), then service layer (CSV importer, classifier with provider abstraction, MCP server), then presentation layer (Streamlit UI), and finally integration wiring and export. Each task builds on the previous, with property-based tests placed close to the code they validate.
+Build the bakflow MVP bottom-up: data layer (SQLite schema, models, status engine, repository), then service layer (CSV importer, classifier with provider abstraction, MCP server), then presentation layer (Streamlit UI), and finally integration wiring and export. Each task builds on the previous, with property-based tests placed close to the code they validate.
 
 ## Tasks
 

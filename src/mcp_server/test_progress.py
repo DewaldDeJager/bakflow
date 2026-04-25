@@ -105,7 +105,7 @@ def _create_entries_with_states(repo, conn, entry_states):
 # Property tests
 # ---------------------------------------------------------------------------
 
-# Feature: drive-backup-triage, Property 16: Progress aggregation correctness
+# Feature: bakflow, Property 16: Progress aggregation correctness
 
 class TestProgressAggregation:
     """P16: Progress aggregation correctness."""

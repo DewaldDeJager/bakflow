@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The Drive Backup Triage MVP is the first deliverable of an AI-agent-assisted workflow for triaging data across multiple hard drives. This MVP focuses on the core classification-and-review loop: importing a directory listing from an external tool (e.g., TreeSize CSV export), classifying entries via a local LLM, reviewing classifications and recording backup decisions in a Streamlit UI, and exporting a decision manifest for manual execution.
+The bakflow MVP is the first deliverable of an AI-agent-assisted workflow for triaging data across multiple hard drives. This MVP focuses on the core classification-and-review loop: importing a directory listing from an external tool (e.g., TreeSize CSV export), classifying entries via a local LLM, reviewing classifications and recording backup decisions in a Streamlit UI, and exporting a decision manifest for manual execution.
 
 Automated drive scanning and automated backup execution are deferred to later phases. The MVP proves the value of the AI classification + human review pattern and establishes the foundational data model, MCP server, and Streamlit UI that future phases build upon.
 

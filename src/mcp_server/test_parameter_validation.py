@@ -56,7 +56,7 @@ def _assert_error_response(result):
 # Property tests
 # ---------------------------------------------------------------------------
 
-# Feature: drive-backup-triage, Property 20: MCP tool parameter validation
+# Feature: bakflow, Property 20: MCP tool parameter validation
 
 class TestMCPParameterValidation:
     """P20: MCP tool parameter validation."""

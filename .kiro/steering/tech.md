@@ -28,11 +28,11 @@
 .venv/bin/pytest -k "test_" src/db/
 
 # CLI entry point (after install)
-.venv/bin/drive-backup-triage --help
-.venv/bin/drive-backup-triage init-db
-.venv/bin/drive-backup-triage import-csv <csv_path> --drive-label <label>
-.venv/bin/drive-backup-triage run-server
-.venv/bin/drive-backup-triage run-ui
+.venv/bin/bakflow --help
+.venv/bin/bakflow init-db
+.venv/bin/bakflow import-csv <csv_path> --drive-label <label>
+.venv/bin/bakflow run-server
+.venv/bin/bakflow run-ui
 ```
 
 ## Key Conventions

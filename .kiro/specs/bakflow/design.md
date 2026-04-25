@@ -1,8 +1,8 @@
-# Design Document — Drive Backup Triage MVP
+# Design Document — bakflow MVP
 
 ## Overview
 
-The Drive Backup Triage MVP is a Python-based system that helps users triage data across multiple hard drives through an AI-assisted classification and human review workflow. The system ingests directory listings via CSV import, classifies entries using a local LLM (Ollama), presents classifications for human review in a Streamlit UI, and exports decision manifests for manual backup execution.
+The bakflow MVP is a Python-based system that helps users triage data across multiple hard drives through an AI-assisted classification and human review workflow. The system ingests directory listings via CSV import, classifies entries using a local LLM (Ollama), presents classifications for human review in a Streamlit UI, and exports decision manifests for manual backup execution.
 
 The architecture follows a layered design:
 
@@ -397,7 +397,7 @@ Classification flow:
 ```python
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("drive-backup-triage")
+mcp = FastMCP("bakflow")
 
 @mcp.tool()
 async def get_unclassified_batch(drive_id: str, batch_size: int = 50) -> list[dict]:
@@ -946,7 +946,7 @@ The project uses both unit tests and property-based tests for comprehensive cove
 
 - **Library**: [Hypothesis](https://hypothesis.readthedocs.io/) (Python)
 - **Minimum iterations**: 100 per property test (via `@settings(max_examples=100)`)
-- **Tag format**: Each test is tagged with a comment: `# Feature: drive-backup-triage, Property {N}: {title}`
+- **Tag format**: Each test is tagged with a comment: `# Feature: bakflow, Property {N}: {title}`
 - **Each correctness property maps to exactly one property-based test**
 
 ### Test Organization

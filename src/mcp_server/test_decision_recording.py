@@ -93,7 +93,7 @@ def _create_ai_classified_entry(repo, conn, idx=0):
 # Property tests
 # ---------------------------------------------------------------------------
 
-# Feature: drive-backup-triage, Property 11: Decision recording round-trip
+# Feature: bakflow, Property 11: Decision recording round-trip
 
 class TestDecisionRecording:
     """P11: Decision recording round-trip."""

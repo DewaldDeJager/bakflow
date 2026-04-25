@@ -104,7 +104,7 @@ def _create_drive_with_mixed_entries(repo, conn, entry_specs):
 # Property tests
 # ---------------------------------------------------------------------------
 
-# Feature: drive-backup-triage, Property 10: Review queue filtering and ordering
+# Feature: bakflow, Property 10: Review queue filtering and ordering
 
 class TestReviewQueueFiltering:
     """P10: Review queue filtering and ordering."""

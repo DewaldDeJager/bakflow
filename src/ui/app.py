@@ -52,7 +52,7 @@ def _export_page():
 
 def main():
     st.set_page_config(
-        page_title="Drive Backup Triage",
+        page_title="bakflow",
         page_icon="💾",
         layout="wide",
         initial_sidebar_state="expanded",
@@ -72,7 +72,7 @@ def main():
         position="sidebar",
     )
 
-    st.sidebar.title("💾 Drive Backup Triage")
+    st.sidebar.title("💾 bakflow")
     pages.run()
 
 

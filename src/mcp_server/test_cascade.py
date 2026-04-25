@@ -123,7 +123,7 @@ def _setup_cascade_scenario(repo, conn, child_decisions):
 # Property tests
 # ---------------------------------------------------------------------------
 
-# Feature: drive-backup-triage, Property 12: Cascade applies decision only to undecided children
+# Feature: bakflow, Property 12: Cascade applies decision only to undecided children
 
 class TestCascadeBehavior:
     """P12: Cascade applies decision only to undecided children."""

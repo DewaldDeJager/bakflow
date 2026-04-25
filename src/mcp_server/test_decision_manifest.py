@@ -92,7 +92,7 @@ def _create_entries_with_states(repo, conn, entry_states):
 # Property tests
 # ---------------------------------------------------------------------------
 
-# Feature: drive-backup-triage, Property 13: Decision manifest contains only matching entries
+# Feature: bakflow, Property 13: Decision manifest contains only matching entries
 
 class TestDecisionManifestFiltering:
     """P13: Decision manifest contains only matching entries."""

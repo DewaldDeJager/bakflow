@@ -101,7 +101,7 @@ def _create_drive_with_entries(repo, conn, statuses: list[str]) -> str:
 # Property tests
 # ---------------------------------------------------------------------------
 
-# Feature: drive-backup-triage, Property 5: Unclassified batch filtering and size limit
+# Feature: bakflow, Property 5: Unclassified batch filtering and size limit
 
 class TestUnclassifiedBatchFiltering:
     """P5: Unclassified batch filtering and size limit."""

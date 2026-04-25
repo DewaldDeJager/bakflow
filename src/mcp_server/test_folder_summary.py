@@ -114,7 +114,7 @@ def _setup_folder(repo, conn, folder_path, children):
 # Property tests
 # ---------------------------------------------------------------------------
 
-# Feature: drive-backup-triage, Property 6: Folder summary aggregation correctness
+# Feature: bakflow, Property 6: Folder summary aggregation correctness
 
 class TestFolderSummaryAggregation:
     """P6: Folder summary aggregation correctness."""
