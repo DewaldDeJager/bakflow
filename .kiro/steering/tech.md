@@ -1,6 +1,7 @@
 # Tech Stack
 
 - **Language**: Python 3.14+
+- **Virtual Environment**: Always use `.venv/bin/python` and `.venv/bin/pytest` (or other `.venv/bin/` executables) when running commands. Never use the global/system Python interpreter.
 - **Build System**: setuptools via `pyproject.toml`
 - **Data Validation**: Pydantic v2 (models as data contracts across all layers)
 - **Database**: SQLite with WAL mode, foreign keys, CHECK constraints, and triggers
@@ -15,23 +16,23 @@
 
 ```bash
 # Run all tests
-pytest
+.venv/bin/pytest
 
 # Run tests for a specific module
-pytest src/db/test_status.py
+.venv/bin/pytest src/db/test_status.py
 
 # Run tests with verbose output
-pytest -v
+.venv/bin/pytest -v
 
 # Run only property-based tests (by marker or filename pattern)
-pytest -k "test_" src/db/
+.venv/bin/pytest -k "test_" src/db/
 
 # CLI entry point (after install)
-drive-backup-triage --help
-drive-backup-triage init-db
-drive-backup-triage import-csv <csv_path> --drive-label <label>
-drive-backup-triage run-server
-drive-backup-triage run-ui
+.venv/bin/drive-backup-triage --help
+.venv/bin/drive-backup-triage init-db
+.venv/bin/drive-backup-triage import-csv <csv_path> --drive-label <label>
+.venv/bin/drive-backup-triage run-server
+.venv/bin/drive-backup-triage run-ui
 ```
 
 ## Key Conventions

@@ -224,7 +224,7 @@ Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, 
     - Exporting to CSV and parsing back recovers all Entry records with correct columns; same for JSON; header contains correct Drive info and accurate counts
     - **Validates: Requirements 4.2, 4.3, 4.4**
 
-- [ ] 10. Wire CLI entry points and integration
+- [x] 10. Wire CLI entry points and integration
   - [x] 10.1 Complete `cli.py` — wire all entry points
     - `import-csv` command: accepts CSV path, drive label, optional hardware IDs, calls importer
     - `run-server` command: starts MCP server with configured DB path
@@ -242,7 +242,7 @@ Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, 
     - Test concurrent MCP tool calls with database-level locking
     - _Requirements: 6.1, 6.5_
 
-- [ ] 11. Final checkpoint — All components integrated
+- [x] 11. Final checkpoint — All components integrated
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

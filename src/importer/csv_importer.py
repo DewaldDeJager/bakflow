@@ -11,7 +11,7 @@ import io
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 
 import sqlite3
 
@@ -265,7 +265,7 @@ def import_csv(
     if existing_count > 0 and not force:
         raise ConflictError(drive_id, existing_count)
 
-    started_at = datetime.utcnow().isoformat()
+    started_at = datetime.now(timezone.utc).isoformat()
 
     entries_created = 0
     skip_details: list[SkipDetail] = []

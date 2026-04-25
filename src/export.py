@@ -10,7 +10,7 @@ from __future__ import annotations
 import csv
 import io
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.db.models import Entry, Drive
 
@@ -25,7 +25,7 @@ def build_summary(drive: Drive, entries: list[Entry], decision_filter: str | Non
         "drive_id": drive.id,
         "drive_label": drive.label,
         "volume_serial": drive.volume_serial,
-        "export_timestamp": datetime.utcnow().isoformat(),
+        "export_timestamp": datetime.now(timezone.utc).isoformat(),
         "decision_filter": decision_filter,
         "total_entries": len(entries),
         "counts_by_decision": counts,
