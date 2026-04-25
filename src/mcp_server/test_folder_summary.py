@@ -40,6 +40,8 @@ def _folder_tree(draw):
     folder_path = "/root/testfolder"
     num_files = draw(st.integers(min_value=0, max_value=20))
     num_subfolders = draw(st.integers(min_value=0, max_value=5))
+    # Whether child folder paths get a trailing slash (mirrors real TreeSize data)
+    trailing_slash = draw(st.booleans())
 
     children = []
     for i in range(num_files):
@@ -55,12 +57,13 @@ def _folder_tree(draw):
 
     for i in range(num_subfolders):
         name = f"subfolder_{i}"
+        suffix = "/" if trailing_slash else ""
         children.append({
             "name": name,
             "entry_type": "folder",
             "extension": None,
             "size_bytes": 0,
-            "path": f"{folder_path}/{name}",
+            "path": f"{folder_path}/{name}{suffix}",
         })
 
     return folder_path, children
@@ -198,6 +201,52 @@ class TestFolderSummaryAggregation:
                 c["name"] for c in children if c["entry_type"] == "folder"
             )
             assert sorted(result["subfolder_names"]) == expected_subfolders
+        finally:
+            conn.close()
+            os.unlink(path)
+
+    def test_subfolder_list_excludes_self(self):
+        """The queried folder itself must not appear in subfolder_names."""
+        conn, repo, path = _make_temp_db()
+        try:
+            folder_path = "/root/testfolder"
+            children = [
+                {"name": "sub_a", "entry_type": "folder", "extension": None,
+                 "size_bytes": 0, "path": f"{folder_path}/sub_a/"},
+                {"name": "sub_b", "entry_type": "folder", "extension": None,
+                 "size_bytes": 0, "path": f"{folder_path}/sub_b/"},
+            ]
+            drive_id = _setup_folder(repo, conn, folder_path, children)
+            result = asyncio.run(
+                get_folder_summary(drive_id=drive_id, path=folder_path)
+            )
+            assert "error" not in result
+            assert "testfolder" not in result["subfolder_names"]
+            assert sorted(result["subfolder_names"]) == ["sub_a", "sub_b"]
+        finally:
+            conn.close()
+            os.unlink(path)
+
+    def test_trailing_slash_subfolders(self):
+        """Subfolder paths with trailing slashes are still detected as direct children."""
+        conn, repo, path = _make_temp_db()
+        try:
+            folder_path = "/root/testfolder"
+            children = [
+                {"name": "alpha", "entry_type": "folder", "extension": None,
+                 "size_bytes": 0, "path": f"{folder_path}/alpha/"},
+                {"name": "beta", "entry_type": "folder", "extension": None,
+                 "size_bytes": 0, "path": f"{folder_path}/beta/"},
+                {"name": "readme.txt", "entry_type": "file", "extension": ".txt",
+                 "size_bytes": 100, "path": f"{folder_path}/readme.txt"},
+            ]
+            drive_id = _setup_folder(repo, conn, folder_path, children)
+            result = asyncio.run(
+                get_folder_summary(drive_id=drive_id, path=folder_path)
+            )
+            assert "error" not in result
+            assert sorted(result["subfolder_names"]) == ["alpha", "beta"]
+            assert result["file_count"] == 1
         finally:
             conn.close()
             os.unlink(path)

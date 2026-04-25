@@ -200,10 +200,13 @@ async def get_folder_summary(drive_id: str, path: str) -> dict:
 
     # Direct subfolders only
     prefix = normalize_path(path).rstrip("/") + "/"
+    folder_path_normalized = prefix.rstrip("/")
     direct_subfolders = [
         c.name
         for c in folder_children
-        if c.path.startswith(prefix) and "/" not in c.path[len(prefix):]
+        if c.path.startswith(prefix)
+        and c.path.rstrip("/") != folder_path_normalized
+        and "/" not in c.path[len(prefix):].rstrip("/")
     ]
 
     return {
