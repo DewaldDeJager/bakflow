@@ -11,12 +11,35 @@ from src.importer.csv_importer import import_csv, ConflictError
 
 def cmd_run_server(args: argparse.Namespace) -> None:
     """Start the MCP server."""
-    print("Not yet implemented")
+    config = AppConfig()
+    db_path = getattr(args, "db_path", None) or config.db_path
+
+    # Ensure the database exists
+    conn = init_db(db_path)
+    conn.close()
+
+    from src.mcp_server.server import init_server
+
+    app = init_server(db_path)
+    transport = getattr(args, "transport", "stdio")
+    app.run(transport=transport)
 
 
 def cmd_run_ui(args: argparse.Namespace) -> None:
     """Launch the Streamlit review UI."""
-    print("Not yet implemented")
+    import subprocess
+    import pathlib
+
+    app_path = pathlib.Path(__file__).parent / "ui" / "app.py"
+    port = getattr(args, "port", None) or "8501"
+
+    cmd = [
+        sys.executable, "-m", "streamlit", "run",
+        str(app_path),
+        "--server.port", str(port),
+        "--server.headless", "true",
+    ]
+    subprocess.run(cmd)
 
 
 def cmd_init_db(args: argparse.Namespace) -> None:
@@ -75,8 +98,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    subparsers.add_parser("run-server", help="Start the MCP server")
-    subparsers.add_parser("run-ui", help="Launch the Streamlit review UI")
+    server_parser = subparsers.add_parser("run-server", help="Start the MCP server")
+    server_parser.add_argument("--db-path", default=None, help="Path to the database file")
+    server_parser.add_argument(
+        "--transport",
+        default="stdio",
+        choices=["stdio", "sse", "streamable-http"],
+        help="MCP transport protocol (default: stdio)",
+    )
+
+    ui_parser = subparsers.add_parser("run-ui", help="Launch the Streamlit review UI")
+    ui_parser.add_argument("--port", default="8501", help="Port for the Streamlit server (default: 8501)")
 
     import_parser = subparsers.add_parser("import-csv", help="Import a TreeSize CSV")
     import_parser.add_argument("csv_path", help="Path to the CSV file")

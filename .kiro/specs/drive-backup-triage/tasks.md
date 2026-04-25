@@ -232,12 +232,12 @@ Build the Drive Backup Triage MVP bottom-up: data layer (SQLite schema, models, 
     - `init-db` command: initializes database at configured path
     - _Requirements: 6.3_
 
-  - [ ] 10.2 Wire `run-server` and `run-ui` CLI stubs to their implementations
+  - [x] 10.2 Wire `run-server` and `run-ui` CLI stubs to their implementations
     - `run-server`: start the MCP server via `mcp_server/server.py` with configured DB path
     - `run-ui`: launch the Streamlit app via `subprocess` or `streamlit.cli` pointing at `ui/app.py`
     - _Requirements: 6.3_
 
-  - [ ]* 10.3 Write integration tests for MCP server tool registration
+  - [x] 10.3 Write integration tests for MCP server tool registration
     - Verify all 7 tools are registered and callable
     - Test concurrent MCP tool calls with database-level locking
     - _Requirements: 6.1, 6.5_
