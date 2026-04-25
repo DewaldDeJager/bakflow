@@ -121,6 +121,6 @@ CREATE TRIGGER IF NOT EXISTS trg_drives_updated_at
 
 def init_db(db_path: str) -> sqlite3.Connection:
     """Create tables, indexes, triggers. Enable WAL mode. Return connection."""
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.executescript(_DDL)
     return conn
