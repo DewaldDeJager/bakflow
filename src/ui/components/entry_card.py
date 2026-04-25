@@ -164,16 +164,28 @@ def _apply_decision(
                 if child.decision_status != "undecided":
                     continue
                 try:
-                    if child.review_status != "reviewed" and child.classification_status == "ai_classified":
-                        apply_transition(conn, child.id, "review_status", "reviewed")
+                    if child.classification_status == "ai_classified":
+                        if child.review_status != "reviewed":
+                            apply_transition(conn, child.id, "review_status", "reviewed")
+                    else:
+                        # Unclassified/failed child: direct update bypassing guards
+                        conn.execute(
+                            "UPDATE entries SET review_status = 'reviewed' WHERE id = ?",
+                            (child.id,),
+                        )
+                        conn.execute(
+                            "INSERT INTO audit_log (entry_id, dimension, old_value, new_value) "
+                            "VALUES (?, 'review_status', ?, 'reviewed')",
+                            (child.id, child.review_status),
+                        )
+                        conn.commit()
+
                     conn.execute(
                         "UPDATE entries SET decision_destination = ?, decision_notes = ? WHERE id = ?",
                         (destination.strip() or None, notes.strip() or None, child.id),
                     )
                     conn.commit()
-                    child_refreshed = repo.get_entry(child.id)
-                    if child_refreshed and child_refreshed.review_status == "reviewed":
-                        apply_transition(conn, child.id, "decision_status", decision)
+                    apply_transition(conn, child.id, "decision_status", decision)
                 except InvalidTransitionError:
                     pass
 

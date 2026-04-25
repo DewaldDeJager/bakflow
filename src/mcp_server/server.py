@@ -572,7 +572,15 @@ def _cascade_decision(
     destination: str | None,
     notes: str | None,
 ) -> dict:
-    """Apply a decision to undecided children of a folder entry."""
+    """Apply a decision to undecided children of a folder entry.
+
+    When a user explicitly cascades a decision to children, the intent is
+    to apply it to the entire subtree.  Children that are already
+    ``ai_classified`` go through the normal transition path.  Children
+    that are still ``unclassified`` (or ``classification_failed``) are
+    updated directly — the cascade is treated as an explicit human
+    override that bypasses the classification → review pipeline.
+    """
     children = repo.get_child_entries(parent.drive_id, parent.path)
     updated = 0
     skipped = 0
@@ -588,17 +596,23 @@ def _cascade_decision(
             continue
 
         try:
-            # Must be reviewed before getting a decision
-            if child.review_status != "reviewed":
-                if child.classification_status == "ai_classified":
+            if child.classification_status == "ai_classified":
+                # Normal path: transition review_status then decision_status
+                if child.review_status != "reviewed":
                     apply_transition(conn, child.id, "review_status", "reviewed")
-                else:
-                    skipped += 1
-                    skip_reasons.append({
-                        "entry_id": child.id,
-                        "reason": "classification_status is not ai_classified",
-                    })
-                    continue
+            else:
+                # Unclassified/failed child: direct update bypassing guards
+                # since the human explicitly chose to cascade
+                conn.execute(
+                    "UPDATE entries SET review_status = 'reviewed' WHERE id = ?",
+                    (child.id,),
+                )
+                conn.execute(
+                    "INSERT INTO audit_log (entry_id, dimension, old_value, new_value) "
+                    "VALUES (?, 'review_status', ?, 'reviewed')",
+                    (child.id, child.review_status),
+                )
+                conn.commit()
 
             conn.execute(
                 "UPDATE entries SET decision_destination = ?, decision_notes = ? WHERE id = ?",
