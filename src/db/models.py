@@ -48,6 +48,7 @@ class Entry(BaseModel):
     id: int  # autoincrement PK
     drive_id: str  # FK → Drive.id
     path: str
+    original_path: str = ""
     name: str
     entry_type: Literal["file", "folder"]
     extension: str | None = None

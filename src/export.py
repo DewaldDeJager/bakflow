@@ -53,7 +53,7 @@ def entries_to_csv(entries: list[Entry], summary: dict) -> str:
     for e in entries:
         classification = e.folder_purpose or e.file_class or ""
         writer.writerow([
-            e.path,
+            e.original_path or e.path,
             e.decision_destination or "",
             e.entry_type,
             classification,
@@ -71,7 +71,7 @@ def entries_to_json(entries: list[Entry], summary: dict) -> str:
     for e in entries:
         classification = e.folder_purpose or e.file_class or None
         records.append({
-            "source_path": e.path,
+            "source_path": e.original_path or e.path,
             "destination_path": e.decision_destination,
             "entry_type": e.entry_type,
             "classification": classification,

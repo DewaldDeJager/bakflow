@@ -15,6 +15,8 @@ from datetime import datetime, timezone
 
 import sqlite3
 
+from src.db.repository import normalize_path
+
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -343,6 +345,7 @@ def import_csv(
 
                 batch.append((
                     drive_id,
+                    normalize_path(raw_path),
                     raw_path,
                     name,
                     entry_type,
@@ -362,8 +365,8 @@ def import_csv(
         try:
             conn.executemany(
                 "INSERT INTO entries "
-                "(drive_id, path, name, entry_type, extension, size_bytes, last_modified) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "(drive_id, path, original_path, name, entry_type, extension, size_bytes, last_modified) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 batch,
             )
             conn.commit()
@@ -376,8 +379,8 @@ def import_csv(
                 try:
                     conn.execute(
                         "INSERT INTO entries "
-                        "(drive_id, path, name, entry_type, extension, size_bytes, last_modified) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        "(drive_id, path, original_path, name, entry_type, extension, size_bytes, last_modified) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                         row_tuple,
                     )
                     entries_created += 1

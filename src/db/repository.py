@@ -16,6 +16,15 @@ from src.db.models import Drive, Entry
 
 
 # ---------------------------------------------------------------------------
+# Path normalization
+# ---------------------------------------------------------------------------
+
+def normalize_path(p: str) -> str:
+    """Replace all backslashes with forward slashes."""
+    return p.replace("\\", "/")
+
+
+# ---------------------------------------------------------------------------
 # Row → model helpers
 # ---------------------------------------------------------------------------
 
@@ -136,6 +145,7 @@ class Repository:
         rows = [
             (
                 e["drive_id"],
+                normalize_path(e["path"]),
                 e["path"],
                 e["name"],
                 e["entry_type"],
@@ -147,8 +157,8 @@ class Repository:
         ]
         self._conn.executemany(
             "INSERT INTO entries "
-            "(drive_id, path, name, entry_type, extension, size_bytes, last_modified) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "(drive_id, path, original_path, name, entry_type, extension, size_bytes, last_modified) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             rows,
         )
         self._conn.commit()
@@ -366,7 +376,7 @@ class Repository:
         to its children.
         """
         cols = self._entry_columns()
-        prefix = parent_path.rstrip("/") + "/"
+        prefix = normalize_path(parent_path).rstrip("/") + "/"
         rows = self._conn.execute(
             "SELECT * FROM entries "
             "WHERE drive_id = ? AND path LIKE ? || '%'",

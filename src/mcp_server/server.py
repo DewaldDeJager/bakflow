@@ -26,7 +26,7 @@ from src.classifier.batch import BatchClassifier
 from src.classifier.provider import ClassifierConfig, create_provider
 from src.config import AppConfig
 from src.db.models import Entry
-from src.db.repository import Repository
+from src.db.repository import Repository, normalize_path
 from src.db.status import InvalidTransitionError, apply_transition
 
 mcp = FastMCP("bakflow")
@@ -187,7 +187,7 @@ async def get_folder_summary(drive_id: str, path: str) -> dict:
         return drive
 
     repo = get_repo()
-    children = repo.get_child_entries(drive.id, path)
+    children = repo.get_child_entries(drive.id, normalize_path(path))
 
     file_children = [c for c in children if c.entry_type == "file"]
     folder_children = [c for c in children if c.entry_type == "folder"]
@@ -199,7 +199,7 @@ async def get_folder_summary(drive_id: str, path: str) -> dict:
         ext_counts[ext] = ext_counts.get(ext, 0) + 1
 
     # Direct subfolders only
-    prefix = path.rstrip("/") + "/"
+    prefix = normalize_path(path).rstrip("/") + "/"
     direct_subfolders = [
         c.name
         for c in folder_children

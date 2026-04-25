@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS entries (
     id                      INTEGER PRIMARY KEY AUTOINCREMENT,
     drive_id                TEXT NOT NULL REFERENCES drives(id),
     path                    TEXT NOT NULL,
+    original_path           TEXT NOT NULL DEFAULT '',
     name                    TEXT NOT NULL,
     entry_type              TEXT NOT NULL CHECK (entry_type IN ('file', 'folder')),
     extension               TEXT,
