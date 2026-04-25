@@ -57,8 +57,15 @@ drive-backup-triage import-csv <csv_path> --drive-label <label> [options]
 Starts the MCP server (FastMCP) exposing triage tools to LLM clients.
 
 ```bash
-drive-backup-triage run-server
+drive-backup-triage run-server [--transport stdio|sse|streamable-http] [--db-path PATH]
 ```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--transport` | `stdio` | MCP transport protocol (`stdio`, `sse`, or `streamable-http`) |
+| `--db-path` | `drive_triage.db` | Path to the SQLite database file |
+
+See [MCP Server](#mcp-server) below for tool descriptions and client configuration.
 
 ### `run-ui`
 
@@ -113,6 +120,90 @@ pytest src/importer/ -v
 # Just the database tests
 pytest src/db/ -v
 ```
+
+## MCP Server
+
+The MCP server exposes 8 tools that let any MCP-compatible client (Kiro, Claude Desktop, etc.) drive the full triage workflow programmatically.
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_unclassified_batch` | Fetch entries that haven't been classified yet. Supports `batch_size` and `include_failed` to retry failures. |
+| `get_folder_summary` | Aggregated summary of a folder's contents — file count, total size, type distribution, and subfolder names. |
+| `submit_classification` | Submit AI classification results (file class or folder purpose, confidence, reasoning) for a batch of entries. |
+| `classify_batch` | End-to-end: fetches unclassified entries, sends them to the configured LLM, and writes results back to the database. |
+| `get_review_queue` | Entries ready for human review, ordered by confidence (lowest first). Filterable by category and confidence range. |
+| `record_decision` | Record an include/exclude/defer decision for an entry. Supports classification overrides, cascade to children, and reclassification requests. |
+| `get_drive_progress` | Triage progress across all three status dimensions (classification, review, decision). |
+| `get_decision_manifest` | Export the decision manifest, filtered by decision status. |
+
+All tools that accept a `drive_id` parameter resolve it as a UUID first, then fall back to volume serial number.
+
+### Client Configuration
+
+To connect an MCP client to the server, point it at the `run-server` CLI command. Here's an example `mcp.json` for Kiro (place in `.kiro/settings/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "drive-backup-triage": {
+      "command": "./.venv/bin/drive-backup-triage",
+      "args": ["run-server", "--transport", "stdio"],
+      "env": {
+        "DBT_LLM_PROVIDER": "ollama",
+        "DBT_MODEL": "llama3.2",
+        "DBT_BASE_URL": "http://localhost:11434",
+        "OLLAMA_API_KEY": "your-key-here (only needed for Ollama Cloud)"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+For Claude Desktop, add the equivalent block to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "drive-backup-triage": {
+      "command": "/path/to/project/.venv/bin/drive-backup-triage",
+      "args": ["run-server", "--transport", "stdio"],
+      "env": {
+        "DBT_LLM_PROVIDER": "ollama",
+        "DBT_MODEL": "llama3.2",
+        "DBT_BASE_URL": "http://localhost:11434",
+        "OLLAMA_API_KEY": "your-key-here (only needed for Ollama Cloud)"
+      }
+    }
+  }
+}
+```
+
+### Environment Variables
+
+The server reads its configuration from environment variables (set via `env` in the MCP config or your shell):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DBT_DB_PATH` | `drive_triage.db` | Path to the SQLite database |
+| `DBT_LLM_PROVIDER` | `ollama` | LLM provider (`ollama` or `openai`) |
+| `DBT_MODEL` | `llama3.2` | Model name to use for classification |
+| `DBT_BASE_URL` | `http://localhost:11434` | Provider API base URL |
+| `DBT_API_KEY` | — | API key (required for OpenAI) |
+| `OLLAMA_API_KEY` | — | API key for Ollama Cloud (read by the `ollama` SDK; not needed for local Ollama) |
+| `DBT_CONFIDENCE_THRESHOLD` | `0.7` | Entries below this confidence are flagged for priority review |
+| `DBT_BATCH_SIZE` | `50` | Default batch size for classification |
+
+### Typical Workflow via MCP
+
+1. `get_drive_progress` — check where things stand
+2. `classify_batch` — run LLM classification on unclassified entries
+3. `get_review_queue` — pull low-confidence entries for human review
+4. `record_decision` — accept or override classifications, record backup decisions
+5. `get_decision_manifest` — export the final include list for backup tooling
 
 ## Project Structure
 
