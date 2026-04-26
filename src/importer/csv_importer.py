@@ -123,15 +123,18 @@ def _infer_entry_type(path: str, extension: str | None) -> str:
 
 def _extract_extension(path: str) -> str | None:
     """Extract the file extension from a path, or None if there isn't one."""
-    name = os.path.basename(path.rstrip("/\\"))
+    # Normalize backslashes first so os.path.basename works correctly on
+    # all platforms (macOS treats '\\' as literal characters, not separators).
+    name = os.path.basename(normalize_path(path).rstrip("/"))
     _, ext = os.path.splitext(name)
     return ext.lower() if ext else None
 
 
 def _extract_name(path: str) -> str:
     """Extract the file/folder name from a full path."""
-    # Strip trailing separators for folders
-    cleaned = path.rstrip("/\\")
+    # Normalize backslashes first so os.path.basename works correctly on
+    # all platforms (macOS treats '\\' as literal characters, not separators).
+    cleaned = normalize_path(path).rstrip("/")
     return os.path.basename(cleaned) or cleaned
 
 
