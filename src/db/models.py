@@ -23,7 +23,7 @@ ClassificationStatus = Literal[
 
 ReviewStatus = Literal["pending_review", "reviewed"]
 
-DecisionStatus = Literal["undecided", "include", "exclude", "defer"]
+DecisionStatus = Literal["undecided", "include", "exclude", "defer", "descend"]
 
 # ---------------------------------------------------------------------------
 # Core data models (match SQLite tables)
@@ -59,9 +59,17 @@ class Entry(BaseModel):
     classification_status: ClassificationStatus = "unclassified"
     folder_purpose: str | None = None  # from Folder_Purpose_Taxonomy
     file_class: str | None = None
-    confidence: float | None = None
+    classification_confidence: float | None = None
+    decision_confidence: float | None = None
     classification_reasoning: str | None = None
     priority_review: bool = False
+
+    # Tree metadata (all nullable — NULL means unknown)
+    depth: int | None = None
+    parent_path: str | None = None
+    child_count: int | None = None
+    descendant_file_count: int | None = None
+    descendant_folder_count: int | None = None
 
     # Review & Decision
     review_status: ReviewStatus = "pending_review"
@@ -109,7 +117,7 @@ class FileClassification(BaseModel):
 
     entry_id: int
     file_class: str
-    confidence: float = Field(ge=0.0, le=1.0)
+    classification_confidence: float = Field(ge=0.0, le=1.0)
     reasoning: str
 
 
@@ -127,7 +135,7 @@ class FolderClassification(BaseModel):
         "system_or_temp",
         "unknown_review_needed",
     ]
-    confidence: float = Field(ge=0.0, le=1.0)
+    classification_confidence: float = Field(ge=0.0, le=1.0)
     reasoning: str
 
 
@@ -152,3 +160,72 @@ class FolderSummary(BaseModel):
     total_size_bytes: int
     file_type_distribution: dict[str, int]  # extension -> count
     subfolder_names: list[str]
+
+
+# ---------------------------------------------------------------------------
+# Wavefront classification models
+# ---------------------------------------------------------------------------
+
+
+class WavefrontFolderClassification(BaseModel):
+    """LLM output for wavefront folder classification with triage signal."""
+
+    entry_id: int
+    folder_purpose: Literal[
+        "irreplaceable_personal",
+        "important_personal",
+        "project_or_work",
+        "reinstallable_software",
+        "media_archive",
+        "redundant_duplicate",
+        "system_or_temp",
+        "unknown_review_needed",
+    ]
+    decision: Literal["include", "exclude", "descend"]
+    classification_confidence: float = Field(ge=0.0, le=1.0)
+    decision_confidence: float = Field(ge=0.0, le=1.0)
+    reasoning: str
+
+
+class WavefrontFolderSummary(BaseModel):
+    """Enhanced folder summary with tree metadata and parent context."""
+
+    entry_id: int
+    path: str
+    name: str
+    depth: int
+    size_bytes: int
+    child_count: int | None = None
+    descendant_file_count: int | None = None
+    descendant_folder_count: int | None = None
+    file_type_distribution: dict[str, int]
+    subfolder_names: list[str]
+    parent_classification: str | None = None
+    parent_decision: str | None = None
+
+
+class WavefrontProgress(BaseModel):
+    """Progress snapshot for a running wavefront classification."""
+
+    current_depth: int
+    max_depth: int | None
+    folders_classified: int
+    folders_pruned: int
+    files_classified: int
+    total_folders: int
+    total_files: int
+    estimated_llm_calls_saved: int
+
+
+class WavefrontResult(BaseModel):
+    """Final result of a wavefront classification run."""
+
+    drive_id: str
+    depths_processed: int
+    folders_classified: int
+    folders_pruned: int
+    files_classified: int
+    files_skipped: int
+    total_llm_calls: int
+    estimated_calls_saved: int
+    errors: list[str] = Field(default_factory=list)

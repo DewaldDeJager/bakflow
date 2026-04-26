@@ -193,7 +193,7 @@ def _seed_classified_entries(repo, db_conn, drive_id, count=5):
     for e in all_entries[: count // 2]:
         db_conn.execute(
             "UPDATE entries SET classification_status='ai_classified', "
-            "confidence=0.5, file_class='document' WHERE id=?",
+            "classification_confidence=0.5, file_class='document' WHERE id=?",
             (e.id,),
         )
     db_conn.commit()
@@ -235,12 +235,12 @@ class TestGetReviewQueue:
         for i, e in enumerate(all_e):
             db_conn.execute(
                 "UPDATE entries SET classification_status='ai_classified', "
-                "confidence=?, file_class='doc' WHERE id=?",
+                "classification_confidence=?, file_class='doc' WHERE id=?",
                 (0.9 - i * 0.3, e.id),
             )
         db_conn.commit()
         queue = repo.get_review_queue(d.id)
-        confs = [e.confidence for e in queue]
+        confs = [e.classification_confidence for e in queue]
         assert confs == sorted(confs)
 
     def test_category_filter(self, repo, db_conn):
@@ -252,12 +252,12 @@ class TestGetReviewQueue:
         all_e = repo.get_entries_by_drive(d.id)
         db_conn.execute(
             "UPDATE entries SET classification_status='ai_classified', "
-            "confidence=0.8, file_class='photo' WHERE id=?",
+            "classification_confidence=0.8, file_class='photo' WHERE id=?",
             (all_e[0].id,),
         )
         db_conn.execute(
             "UPDATE entries SET classification_status='ai_classified', "
-            "confidence=0.7, folder_purpose='media_archive' WHERE id=?",
+            "classification_confidence=0.7, folder_purpose='media_archive' WHERE id=?",
             (all_e[1].id,),
         )
         db_conn.commit()

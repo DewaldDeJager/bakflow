@@ -278,15 +278,15 @@ class Repository:
             params.extend([filters["category"], filters["category"]])
 
         if "min_confidence" in filters and filters["min_confidence"] is not None:
-            clauses.append("confidence >= ?")
+            clauses.append("classification_confidence >= ?")
             params.append(filters["min_confidence"])
 
         if "max_confidence" in filters and filters["max_confidence"] is not None:
-            clauses.append("confidence <= ?")
+            clauses.append("classification_confidence <= ?")
             params.append(filters["max_confidence"])
 
         sql = "SELECT * FROM entries WHERE " + " AND ".join(clauses)
-        sql += " ORDER BY confidence ASC"
+        sql += " ORDER BY classification_confidence ASC"
 
         if "limit" in filters and filters["limit"] is not None:
             sql += " LIMIT ?"

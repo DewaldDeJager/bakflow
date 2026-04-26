@@ -11,14 +11,14 @@
 
 ## Task 2: Pydantic Model Updates (Req 2.1, 2.2)
 
-- [ ] 2.1 Update `DecisionStatus` literal to include `'descend'` in `src/db/models.py`.
-- [ ] 2.2 Update `Entry` model: rename `confidence` to `classification_confidence`, add `decision_confidence: float | None = None`, add tree metadata fields (`depth`, `parent_path`, `child_count`, `descendant_file_count`, `descendant_folder_count`) all as `int | None = None` or `str | None = None`.
-- [ ] 2.3 Add `WavefrontFolderClassification` model with `entry_id`, `folder_purpose` (Literal), `decision` (Literal["include", "exclude", "descend"]), `classification_confidence`, `decision_confidence`, `reasoning`.
-- [ ] 2.4 Add `WavefrontFolderSummary` model with tree metadata and parent context fields (`parent_classification`, `parent_decision`).
-- [ ] 2.5 Add `WavefrontProgress` and `WavefrontResult` models.
-- [ ] 2.6 Update `FolderClassification` model: rename `confidence` to `classification_confidence` (or keep for backward compat with existing classify_folders).
-- [ ] 2.7 Update `FileClassification` model: rename `confidence` to `classification_confidence`.
-- [ ] 2.8 Write tests for model updates: verify Entry round-trips with new fields, WavefrontFolderClassification validates decision and confidence ranges, WavefrontFolderSummary accepts None parent context.
+- [x] 2.1 Update `DecisionStatus` literal to include `'descend'` in `src/db/models.py`.
+- [x] 2.2 Update `Entry` model: rename `confidence` to `classification_confidence`, add `decision_confidence: float | None = None`, add tree metadata fields (`depth`, `parent_path`, `child_count`, `descendant_file_count`, `descendant_folder_count`) all as `int | None = None` or `str | None = None`.
+- [x] 2.3 Add `WavefrontFolderClassification` model with `entry_id`, `folder_purpose` (Literal), `decision` (Literal["include", "exclude", "descend"]), `classification_confidence`, `decision_confidence`, `reasoning`.
+- [x] 2.4 Add `WavefrontFolderSummary` model with tree metadata and parent context fields (`parent_classification`, `parent_decision`).
+- [x] 2.5 Add `WavefrontProgress` and `WavefrontResult` models.
+- [x] 2.6 Update `FolderClassification` model: rename `confidence` to `classification_confidence` (or keep for backward compat with existing classify_folders).
+- [x] 2.7 Update `FileClassification` model: rename `confidence` to `classification_confidence`.
+- [x] 2.8 Write tests for model updates: verify Entry round-trips with new fields, WavefrontFolderClassification validates decision and confidence ranges, WavefrontFolderSummary accepts None parent context.
 
 ## Task 3: Status Engine Updates (Req 3.1, 3.2, 3.3)
 

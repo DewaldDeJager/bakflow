@@ -258,7 +258,7 @@ class TestPersistenceRoundTrip:
                 assert rest.decision_status == orig.decision_status
                 assert rest.folder_purpose == orig.folder_purpose
                 assert rest.file_class == orig.file_class
-                assert rest.confidence == orig.confidence
+                assert rest.classification_confidence == orig.classification_confidence
                 assert rest.priority_review == orig.priority_review
                 assert rest.decision_destination == orig.decision_destination
                 assert rest.decision_notes == orig.decision_notes

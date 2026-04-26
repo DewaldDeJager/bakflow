@@ -13,6 +13,10 @@ from src.db.models import (
     FolderClassification,
     FileSummary,
     FolderSummary,
+    WavefrontFolderClassification,
+    WavefrontFolderSummary,
+    WavefrontProgress,
+    WavefrontResult,
 )
 
 __all__ = [
@@ -28,4 +32,8 @@ __all__ = [
     "FolderClassification",
     "FileSummary",
     "FolderSummary",
+    "WavefrontFolderClassification",
+    "WavefrontFolderSummary",
+    "WavefrontProgress",
+    "WavefrontResult",
 ]
