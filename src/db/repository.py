@@ -226,7 +226,11 @@ class Repository:
         Selects entries where ``classification_status`` is ``'unclassified'``
         or ``'needs_reclassification'``.  When *include_failed* is True,
         entries with ``'classification_failed'`` are also included so they
-        can be retried.  (Req 2.1)
+        can be retried.
+
+        Entries that already have a ``decision_status`` of ``'include'`` or
+        ``'exclude'`` are excluded — there is no value in reclassifying
+        entries whose backup decision is already final.  (Req 2.1)
         """
         statuses = ["unclassified", "needs_reclassification"]
         if include_failed:
@@ -237,6 +241,7 @@ class Repository:
             f"SELECT * FROM entries "
             f"WHERE drive_id = ? "
             f"  AND classification_status IN ({placeholders}) "
+            f"  AND decision_status NOT IN ('include', 'exclude') "
             f"LIMIT ?",
             (drive_id, *statuses, batch_size),
         ).fetchall()

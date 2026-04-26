@@ -179,3 +179,137 @@ class TestUnclassifiedBatchFiltering:
         finally:
             conn.close()
             os.unlink(path)
+
+
+# ---------------------------------------------------------------------------
+# Decision-status exclusion strategies
+# ---------------------------------------------------------------------------
+
+_decision_statuses = ["undecided", "include", "exclude", "defer"]
+
+_FINAL_DECISIONS = {"include", "exclude"}
+
+
+def _create_drive_with_decision_entries(
+    repo, conn, entries: list[tuple[str, str]]
+) -> str:
+    """Create a drive with entries having specific (classification_status, decision_status) pairs.
+
+    Each tuple is (classification_status, decision_status).  Returns the drive_id.
+    """
+    drive = repo.create_drive(label="test-drive-decisions")
+    for i, (cls_status, dec_status) in enumerate(entries):
+        repo.create_entries_bulk([{
+            "drive_id": drive.id,
+            "path": f"/file_{i}.txt",
+            "name": f"file_{i}.txt",
+            "entry_type": "file",
+            "extension": ".txt",
+            "size_bytes": 100,
+        }])
+        entry_id = i + 1
+
+        # Reach the desired classification_status
+        if cls_status == "ai_classified":
+            conn.execute(
+                "UPDATE entries SET file_class = 'document', confidence = 0.9 WHERE id = ?",
+                (entry_id,),
+            )
+            conn.commit()
+            apply_transition(conn, entry_id, "classification_status", "ai_classified")
+        elif cls_status == "classification_failed":
+            apply_transition(conn, entry_id, "classification_status", "classification_failed")
+        elif cls_status == "needs_reclassification":
+            conn.execute(
+                "UPDATE entries SET file_class = 'document', confidence = 0.9 WHERE id = ?",
+                (entry_id,),
+            )
+            conn.commit()
+            apply_transition(conn, entry_id, "classification_status", "ai_classified")
+            apply_transition(conn, entry_id, "classification_status", "needs_reclassification")
+
+        # Reach the desired decision_status (requires ai_classified + reviewed first)
+        if dec_status != "undecided":
+            # Ensure entry is ai_classified so we can mark it reviewed
+            if cls_status not in ("ai_classified",):
+                # Force ai_classified for the review guard
+                conn.execute(
+                    "UPDATE entries SET file_class = 'document', confidence = 0.9, "
+                    "classification_status = 'ai_classified' WHERE id = ?",
+                    (entry_id,),
+                )
+                conn.commit()
+            apply_transition(conn, entry_id, "review_status", "reviewed")
+            apply_transition(conn, entry_id, "decision_status", dec_status)
+            # Restore the intended classification_status if we forced it
+            if cls_status != "ai_classified":
+                conn.execute(
+                    f"UPDATE entries SET classification_status = ? WHERE id = ?",
+                    (cls_status, entry_id),
+                )
+                conn.commit()
+
+    return drive.id
+
+
+class TestUnclassifiedBatchExcludesDecidedEntries:
+    """Entries with decision_status in {include, exclude} must not appear in unclassified batches."""
+
+    @given(
+        entries=st.lists(
+            st.tuples(
+                st.sampled_from(["unclassified", "needs_reclassification"]),
+                st.sampled_from(_decision_statuses),
+            ),
+            min_size=1,
+            max_size=30,
+        ),
+    )
+    @settings(max_examples=100)
+    def test_excludes_entries_with_final_decisions(self, entries):
+        """No returned entry has decision_status of 'include' or 'exclude'."""
+        conn, repo, path = _make_temp_db()
+        try:
+            drive_id = _create_drive_with_decision_entries(repo, conn, entries)
+            result = asyncio.run(
+                get_unclassified_batch(drive_id=drive_id, batch_size=200)
+            )
+            assert "error" not in result
+            for entry in result["entries"]:
+                assert entry["decision_status"] not in _FINAL_DECISIONS, (
+                    f"Entry {entry['id']} has decision_status={entry['decision_status']!r} "
+                    f"but should have been excluded"
+                )
+        finally:
+            conn.close()
+            os.unlink(path)
+
+    @given(
+        entries=st.lists(
+            st.tuples(
+                st.sampled_from(["unclassified", "needs_reclassification"]),
+                st.sampled_from(_decision_statuses),
+            ),
+            min_size=1,
+            max_size=30,
+        ),
+    )
+    @settings(max_examples=100)
+    def test_count_matches_eligible_entries(self, entries):
+        """Returned count equals entries with eligible classification AND non-final decision."""
+        conn, repo, path = _make_temp_db()
+        try:
+            drive_id = _create_drive_with_decision_entries(repo, conn, entries)
+            expected = sum(
+                1 for cls, dec in entries
+                if cls in ("unclassified", "needs_reclassification")
+                and dec not in _FINAL_DECISIONS
+            )
+            result = asyncio.run(
+                get_unclassified_batch(drive_id=drive_id, batch_size=200)
+            )
+            assert "error" not in result
+            assert result["count"] == expected
+        finally:
+            conn.close()
+            os.unlink(path)
