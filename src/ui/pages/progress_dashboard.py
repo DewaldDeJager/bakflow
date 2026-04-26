@@ -68,8 +68,8 @@ def render() -> None:
 
     # Overall completion
     pct = progress["completion_pct"]
-    st.metric("Overall Completion", f"{pct:.0%}", help="Reviewed / Total entries")
-    st.progress(pct)
+    st.metric("Overall Completion", f"{pct:.1f}%", help="Reviewed / Total entries")
+    st.progress(pct / 100)
 
     st.divider()
 

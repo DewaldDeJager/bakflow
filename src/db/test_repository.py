@@ -289,7 +289,7 @@ class TestGetDriveProgress:
         prog = repo.get_drive_progress(d.id)
         assert prog["total"] == 4
         assert prog["review_status"]["reviewed"] == 1
-        assert prog["completion_pct"] == pytest.approx(0.25)
+        assert prog["completion_pct"] == pytest.approx(25.0)
 
 
 class TestGetDecisionManifest:

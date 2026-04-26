@@ -310,7 +310,7 @@ class Repository:
         - ``classification_status``: ``{status: count, ...}``
         - ``review_status``: ``{status: count, ...}``
         - ``decision_status``: ``{status: count, ...}``
-        - ``completion_pct``: ``reviewed / total`` as a float (0.0–1.0)
+        - ``completion_pct``: ``reviewed / total`` as a percentage (0.0–100.0)
 
         (Req 5.3)
         """
@@ -336,7 +336,7 @@ class Repository:
             result[dimension] = {row[0]: row[1] for row in rows}
 
         reviewed = result["review_status"].get("reviewed", 0)
-        result["completion_pct"] = reviewed / total
+        result["completion_pct"] = (reviewed / total) * 100
 
         return result
 

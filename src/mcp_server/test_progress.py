@@ -196,7 +196,7 @@ class TestProgressAggregation:
     )
     @settings(max_examples=100)
     def test_completion_pct_equals_reviewed_over_total(self, entry_states):
-        """completion_pct = reviewed / total."""
+        """completion_pct = (reviewed / total) * 100."""
         conn, repo, path = _make_temp_db()
         try:
             drive_id, actual = _create_entries_with_states(repo, conn, entry_states)
@@ -207,8 +207,8 @@ class TestProgressAggregation:
 
             reviewed = sum(1 for s in actual if s["review_status"] == "reviewed")
             total = len(actual)
-            expected_pct = reviewed / total if total > 0 else 0.0
-            assert abs(result["completion_pct"] - expected_pct) < 1e-9
+            expected_pct = (reviewed / total) * 100 if total > 0 else 0.0
+            assert abs(result["completion_pct"] - expected_pct) < 1e-6
         finally:
             conn.close()
             os.unlink(path)
