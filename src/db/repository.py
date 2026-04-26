@@ -374,6 +374,228 @@ class Repository:
     # Children (for cascade)
     # -----------------------------------------------------------------------
 
+    def get_folders_at_depth(
+        self, drive_id: str, depth: int, *, exclude_pruned: bool = True
+    ) -> list[Entry]:
+        """Return unclassified/needs_reclassification folders at *depth*.
+
+        When *exclude_pruned* is True, folders whose ancestor already has an
+        ``include`` or ``exclude`` decision are omitted via a NOT EXISTS
+        subquery.  Results are ordered by ``descendant_file_count`` descending
+        (NULLs last).
+        """
+        cols = self._entry_columns()
+        params: list[object] = [drive_id, depth]
+
+        sql = (
+            "SELECT e.* FROM entries e"
+            " WHERE e.drive_id = ?"
+            "   AND e.depth = ?"
+            "   AND e.entry_type = 'folder'"
+            "   AND e.classification_status IN ('unclassified', 'needs_reclassification')"
+        )
+
+        if exclude_pruned:
+            sql += (
+                " AND NOT EXISTS ("
+                "   SELECT 1 FROM entries ancestor"
+                "   WHERE ancestor.drive_id = e.drive_id"
+                "     AND ancestor.entry_type = 'folder'"
+                "     AND ancestor.decision_status IN ('include', 'exclude')"
+                "     AND e.path LIKE ancestor.path || '%'"
+                "     AND ancestor.path != e.path"
+                " )"
+            )
+
+        sql += " ORDER BY COALESCE(e.descendant_file_count, 0) DESC"
+
+        rows = self._conn.execute(sql, params).fetchall()
+        return [_row_to_entry(r, cols) for r in rows]
+
+    def get_pending_files(
+        self,
+        drive_id: str,
+        *,
+        batch_size: int = 50,
+    ) -> list[Entry]:
+        """Return unclassified files not under pruned ancestors.
+
+        Returns file entries where ``classification_status`` is
+        ``'unclassified'`` or ``'needs_reclassification'``, excluding any
+        file whose ancestor folder already has an ``include`` or ``exclude``
+        decision (same NOT EXISTS pruning pattern as
+        :meth:`get_folders_at_depth`).
+
+        Results are limited to *batch_size* rows.
+        """
+        cols = self._entry_columns()
+
+        sql = (
+            "SELECT e.* FROM entries e"
+            " WHERE e.drive_id = ?"
+            "   AND e.entry_type = 'file'"
+            "   AND e.classification_status IN ('unclassified', 'needs_reclassification')"
+            " AND NOT EXISTS ("
+            "   SELECT 1 FROM entries ancestor"
+            "   WHERE ancestor.drive_id = e.drive_id"
+            "     AND ancestor.entry_type = 'folder'"
+            "     AND ancestor.decision_status IN ('include', 'exclude')"
+            "     AND e.path LIKE ancestor.path || '%'"
+            "     AND ancestor.path != e.path"
+            " )"
+            " LIMIT ?"
+        )
+
+        rows = self._conn.execute(sql, (drive_id, batch_size)).fetchall()
+        return [_row_to_entry(r, cols) for r in rows]
+
+    # -----------------------------------------------------------------------
+    # Tree metadata derivation
+    # -----------------------------------------------------------------------
+
+    def compute_tree_metadata(self, drive_id: str) -> int:
+        """Derive depth, parent_path, child_count, descendant_*_count from path structure.
+
+        Used as a post-import step when the CSV didn't include TreeSize columns.
+        Returns the number of entries updated.
+        """
+        updated = 0
+
+        # --- Phase 1: depth and parent_path (Python string ops) -----------
+        rows = self._conn.execute(
+            "SELECT id, path FROM entries "
+            "WHERE drive_id = ? AND (depth IS NULL OR parent_path IS NULL)",
+            (drive_id,),
+        ).fetchall()
+
+        for row_id, path in rows:
+            depth = path.count("/") - 1 if path.startswith("/") else path.count("/")
+            parent = None
+            if depth > 0:
+                last_slash = path.rfind("/")
+                parent = path[:last_slash] if last_slash > 0 else "/"
+
+            # Only update NULL columns
+            parts: list[str] = []
+            params: list[object] = []
+            # Check which columns need updating via a targeted query
+            cur = self._conn.execute(
+                "SELECT depth, parent_path FROM entries WHERE id = ?",
+                (row_id,),
+            ).fetchone()
+            existing_depth, existing_parent = cur
+
+            if existing_depth is None:
+                parts.append("depth = ?")
+                params.append(depth)
+            if existing_parent is None and parent is not None:
+                parts.append("parent_path = ?")
+                params.append(parent)
+
+            if parts:
+                params.append(row_id)
+                self._conn.execute(
+                    f"UPDATE entries SET {', '.join(parts)} WHERE id = ?",
+                    params,
+                )
+                updated += 1
+
+        # --- Phase 2: child_count for folders (SQL subquery) --------------
+        cur = self._conn.execute(
+            "UPDATE entries SET child_count = ("
+            "  SELECT COUNT(*) FROM entries c"
+            "  WHERE c.drive_id = entries.drive_id"
+            "    AND c.parent_path = entries.path"
+            ") WHERE drive_id = ? AND entry_type = 'folder' AND child_count IS NULL",
+            (drive_id,),
+        )
+        updated += cur.rowcount
+
+        # --- Phase 3: descendant_file_count for folders -------------------
+        cur = self._conn.execute(
+            "UPDATE entries SET descendant_file_count = ("
+            "  SELECT COUNT(*) FROM entries d"
+            "  WHERE d.drive_id = entries.drive_id"
+            "    AND d.entry_type = 'file'"
+            "    AND d.path LIKE entries.path || '/%'"
+            ") WHERE drive_id = ? AND entry_type = 'folder' AND descendant_file_count IS NULL",
+            (drive_id,),
+        )
+        updated += cur.rowcount
+
+        # --- Phase 4: descendant_folder_count for folders -----------------
+        cur = self._conn.execute(
+            "UPDATE entries SET descendant_folder_count = ("
+            "  SELECT COUNT(*) FROM entries d"
+            "  WHERE d.drive_id = entries.drive_id"
+            "    AND d.entry_type = 'folder'"
+            "    AND d.path LIKE entries.path || '/%'"
+            ") WHERE drive_id = ? AND entry_type = 'folder' AND descendant_folder_count IS NULL",
+            (drive_id,),
+        )
+        updated += cur.rowcount
+
+        self._conn.commit()
+        return updated
+
+    # -----------------------------------------------------------------------
+    # Supporting queries (wavefront)
+    # -----------------------------------------------------------------------
+
+    def get_max_depth(self, drive_id: str) -> int:
+        """Return the maximum depth value across all entries for a drive.
+
+        Returns 0 if no entries exist or all depths are NULL.
+        """
+        row = self._conn.execute(
+            "SELECT MAX(depth) FROM entries WHERE drive_id = ?",
+            (drive_id,),
+        ).fetchone()
+        return row[0] if row[0] is not None else 0
+
+    def count_folders_at_depth(self, drive_id: str, depth: int) -> int:
+        """Count total folders at a depth level (for progress reporting)."""
+        row = self._conn.execute(
+            "SELECT COUNT(*) FROM entries WHERE drive_id = ? AND depth = ? AND entry_type = 'folder'",
+            (drive_id, depth),
+        ).fetchone()
+        return row[0]
+
+    def get_parent_entry(self, drive_id: str, parent_path: str) -> Entry | None:
+        """Fetch the parent folder entry for context propagation.
+
+        Looks up the entry with the given path in the specified drive.
+        """
+        cols = self._entry_columns()
+        row = self._conn.execute(
+            "SELECT * FROM entries WHERE drive_id = ? AND path = ? AND entry_type = 'folder'",
+            (drive_id, parent_path),
+        ).fetchone()
+        if row is None:
+            return None
+        return _row_to_entry(row, cols)
+
+    def get_pruned_ancestor(self, drive_id: str, path: str) -> Entry | None:
+        """Check if any ancestor of the given path has a terminal decision (include/exclude).
+
+        Returns the nearest pruned ancestor Entry, or None if the path is reachable.
+        Searches ancestors from nearest to farthest (longest path first).
+        """
+        cols = self._entry_columns()
+        row = self._conn.execute(
+            "SELECT * FROM entries "
+            "WHERE drive_id = ? "
+            "  AND entry_type = 'folder' "
+            "  AND decision_status IN ('include', 'exclude') "
+            "  AND ? LIKE path || '/%' "
+            "ORDER BY LENGTH(path) DESC "
+            "LIMIT 1",
+            (drive_id, path),
+        ).fetchone()
+        if row is None:
+            return None
+        return _row_to_entry(row, cols)
+
     def get_child_entries(self, drive_id: str, parent_path: str) -> list[Entry]:
         """Return entries whose path starts with ``parent_path + '/'``.
 

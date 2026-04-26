@@ -29,11 +29,11 @@
 
 ## Task 4: Repository — Wavefront Queries (Req 4.1, 4.2, 4.3, 4.4)
 
-- [ ] 4.1 Add `get_folders_at_depth(drive_id, depth, exclude_pruned=True)` method to `Repository` in `src/db/repository.py`. Uses NOT EXISTS subquery for pruning, orders by `descendant_file_count DESC NULLS LAST`.
-- [ ] 4.2 Add `get_pending_files(drive_id, batch_size=50)` method that returns unclassified files not under pruned ancestors.
-- [ ] 4.3 Add `compute_tree_metadata(drive_id)` method that derives depth, parent_path, child_count, descendant_file_count, descendant_folder_count from path structure.
-- [ ] 4.4 Add `get_max_depth(drive_id)`, `count_folders_at_depth(drive_id, depth)`, `get_parent_entry(drive_id, parent_path)`, `get_pruned_ancestor(drive_id, path)` methods.
-- [ ] 4.5 Write tests for repository queries: verify get_folders_at_depth with pruned/unpruned trees, verify compute_tree_metadata against known tree structures, verify get_pending_files excludes pruned files.
+- [x] 4.1 Add `get_folders_at_depth(drive_id, depth, exclude_pruned=True)` method to `Repository` in `src/db/repository.py`. Uses NOT EXISTS subquery for pruning, orders by `descendant_file_count DESC NULLS LAST`.
+- [x] 4.2 Add `get_pending_files(drive_id, batch_size=50)` method that returns unclassified files not under pruned ancestors.
+- [x] 4.3 Add `compute_tree_metadata(drive_id)` method that derives depth, parent_path, child_count, descendant_file_count, descendant_folder_count from path structure.
+- [x] 4.4 Add `get_max_depth(drive_id)`, `count_folders_at_depth(drive_id, depth)`, `get_parent_entry(drive_id, parent_path)`, `get_pruned_ancestor(drive_id, path)` methods.
+- [x] 4.5 Write tests for repository queries: verify get_folders_at_depth with pruned/unpruned trees, verify compute_tree_metadata against known tree structures, verify get_pending_files excludes pruned files.
 
 ## Task 5: CSV Importer Updates (Req 5.1, 5.2)
 

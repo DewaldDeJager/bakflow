@@ -85,14 +85,17 @@ def _insert_entry_in_state(
 ) -> int:
     """Insert a drive + entry and force it into the given state. Returns entry id."""
     drive = repo.create_drive("audit-test-drive")
-    entry_path = f"/test/{uuid.uuid4()}.txt"
+    # Use a folder entry when descend is involved (DB CHECK constraint requires it)
+    use_folder = decision_status == "descend"
+    unique = uuid.uuid4()
+    entry_path = f"/test/{unique}" if use_folder else f"/test/{unique}.txt"
     repo.create_entries_bulk([{
         "drive_id": drive.id,
         "path": entry_path,
-        "name": "test.txt",
-        "entry_type": "file",
-        "extension": ".txt",
-        "size_bytes": 100,
+        "name": "test-folder" if use_folder else "test.txt",
+        "entry_type": "folder" if use_folder else "file",
+        "extension": None if use_folder else ".txt",
+        "size_bytes": 0 if use_folder else 100,
         "last_modified": "2024-01-01 00:00:00",
     }])
     entry = repo.get_entries_by_drive(drive.id)[0]
@@ -115,8 +118,13 @@ def _get_audit_rows(conn: sqlite3.Connection, entry_id: int) -> list[tuple]:
     ).fetchall()
 
 
-def _setup_entry_for_transition(dim: str, current: str):
-    """Return (conn, repo, path, entry_id) with entry in the right starting state."""
+def _setup_entry_for_transition(dim: str, current: str, target: str = ""):
+    """Return (conn, repo, path, entry_id) with entry in the right starting state.
+
+    When *target* is ``'descend'`` (or *current* is ``'descend'``), a folder
+    entry is created so the DB CHECK constraint and cross-dimension guard are
+    satisfied.
+    """
     cs = "unclassified"
     rs = "pending_review"
     ds = "undecided"
@@ -130,7 +138,31 @@ def _setup_entry_for_transition(dim: str, current: str):
         ds = current
 
     conn, repo, path = _make_temp_db()
-    entry_id = _insert_entry_in_state(conn, repo, cs, rs, ds)
+
+    # If descend is involved, we need a folder entry
+    needs_folder = (ds == "descend" or target == "descend")
+    if needs_folder:
+        drive = repo.create_drive("audit-test-drive")
+        entry_path = f"/test/{uuid.uuid4()}"
+        repo.create_entries_bulk([{
+            "drive_id": drive.id,
+            "path": entry_path,
+            "name": "test-folder",
+            "entry_type": "folder",
+            "size_bytes": 0,
+            "last_modified": "2024-01-01 00:00:00",
+        }])
+        entry = repo.get_entries_by_drive(drive.id)[0]
+        conn.execute(
+            "UPDATE entries SET classification_status = ?, review_status = ?, "
+            "decision_status = ? WHERE id = ?",
+            (cs, rs, ds, entry.id),
+        )
+        conn.commit()
+        entry_id = entry.id
+    else:
+        entry_id = _insert_entry_in_state(conn, repo, cs, rs, ds)
+
     return conn, repo, path, entry_id
 
 
@@ -147,7 +179,7 @@ class TestAuditLogCreatedOnValidTransition:
     def test_audit_log_entry_created(self, triple):
         """**Validates: Requirements 5.5, 7.6, 3.8**"""
         dim, current, target = triple
-        conn, repo, path, entry_id = _setup_entry_for_transition(dim, current)
+        conn, repo, path, entry_id = _setup_entry_for_transition(dim, current, target)
         try:
             apply_transition(conn, entry_id, dim, target)
 
@@ -183,7 +215,7 @@ class TestNoAuditLogOnInvalidTransition:
     def test_no_audit_log_on_rejection(self, triple):
         """**Validates: Requirements 5.5, 7.6**"""
         dim, current, target = triple
-        conn, repo, path, entry_id = _setup_entry_for_transition(dim, current)
+        conn, repo, path, entry_id = _setup_entry_for_transition(dim, current, target)
         try:
             with pytest.raises(InvalidTransitionError):
                 apply_transition(conn, entry_id, dim, target)
@@ -246,7 +278,31 @@ class TestAuditLogAccumulation:
             ds = chain[0][0]
 
         conn, repo, path = _make_temp_db()
-        entry_id = _insert_entry_in_state(conn, repo, cs, rs, ds)
+        # If any state in the chain involves descend, use a folder entry
+        needs_folder = any(
+            s == "descend" for pair in chain for s in pair
+        )
+        if needs_folder and dim == "decision_status":
+            drive = repo.create_drive("audit-test-drive")
+            entry_path = f"/test/{uuid.uuid4()}"
+            repo.create_entries_bulk([{
+                "drive_id": drive.id,
+                "path": entry_path,
+                "name": "test-folder",
+                "entry_type": "folder",
+                "size_bytes": 0,
+                "last_modified": "2024-01-01 00:00:00",
+            }])
+            entry = repo.get_entries_by_drive(drive.id)[0]
+            conn.execute(
+                "UPDATE entries SET classification_status = ?, review_status = ?, "
+                "decision_status = ? WHERE id = ?",
+                (cs, rs, ds, entry.id),
+            )
+            conn.commit()
+            entry_id = entry.id
+        else:
+            entry_id = _insert_entry_in_state(conn, repo, cs, rs, ds)
         try:
             for old_val, new_val in chain:
                 # For review_status → reviewed, ensure classification_status is ai_classified
@@ -305,7 +361,32 @@ class TestAuditLogCountMatchesTransitions:
                 elif dim == "decision_status":
                     ds = current
 
-                entry_id = _insert_entry_in_state(conn, repo, cs, rs, ds)
+                # Use folder entry when descend is involved (DB CHECK + guard)
+                needs_folder = dim == "decision_status" and (
+                    current == "descend" or target == "descend"
+                )
+                if needs_folder:
+                    drive = repo.create_drive("audit-test-drive")
+                    entry_path = f"/test/{uuid.uuid4()}"
+                    repo.create_entries_bulk([{
+                        "drive_id": drive.id,
+                        "path": entry_path,
+                        "name": "test-folder",
+                        "entry_type": "folder",
+                        "size_bytes": 0,
+                        "last_modified": "2024-01-01 00:00:00",
+                    }])
+                    folder_entry = repo.get_entries_by_drive(drive.id)[0]
+                    conn.execute(
+                        "UPDATE entries SET classification_status = ?, review_status = ?, "
+                        "decision_status = ? WHERE id = ?",
+                        (cs, rs, ds, folder_entry.id),
+                    )
+                    conn.commit()
+                    entry_id = folder_entry.id
+                else:
+                    entry_id = _insert_entry_in_state(conn, repo, cs, rs, ds)
+
                 try:
                     apply_transition(conn, entry_id, dim, target)
                     successful += 1
