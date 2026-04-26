@@ -29,6 +29,7 @@ from src.mcp_server.server import mcp
 # ---------------------------------------------------------------------------
 
 EXPECTED_TOOLS = {
+    "list_drives",
     "get_unclassified_batch",
     "get_folder_summary",
     "submit_classification",
@@ -105,10 +106,10 @@ def _seed_drive_with_entries(repo, conn, count=5):
 # ---------------------------------------------------------------------------
 
 class TestToolRegistration:
-    """Verify all 8 tools are registered and discoverable via FastMCP."""
+    """Verify all 9 tools are registered and discoverable via FastMCP."""
 
-    def test_all_eight_tools_registered(self):
-        """list_tools returns exactly the 8 expected tools."""
+    def test_all_nine_tools_registered(self):
+        """list_tools returns exactly the 9 expected tools."""
         tools = asyncio.run(mcp.list_tools())
         tool_names = {t.name for t in tools}
         assert tool_names == EXPECTED_TOOLS

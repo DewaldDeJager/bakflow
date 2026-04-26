@@ -1,6 +1,7 @@
 """MCP server tool definitions for bakflow.
 
-Exposes 8 tools via FastMCP:
+Exposes 9 tools via FastMCP:
+- list_drives
 - get_unclassified_batch
 - get_folder_summary
 - submit_classification
@@ -116,6 +117,26 @@ def _resolve_drive(drive_id: str) -> Any:
 def _entry_to_dict(entry: Entry) -> dict:
     """Serialise an Entry model to a plain dict for MCP responses."""
     return entry.model_dump(mode="json")
+
+
+# ---------------------------------------------------------------------------
+# Tool: list_drives
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+async def list_drives() -> dict:
+    """List all registered drives.
+
+    Returns a list of drives with their IDs, labels, volume serials, and
+    creation timestamps. Use this to discover drive IDs for other tools.
+    """
+    repo = get_repo()
+    drives = repo.list_drives()
+    return {
+        "count": len(drives),
+        "drives": [d.model_dump(mode="json") for d in drives],
+    }
 
 
 # ---------------------------------------------------------------------------
