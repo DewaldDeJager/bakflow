@@ -60,6 +60,7 @@ def test_all_indexes_created(db_conn):
         "idx_entries_drive_review",
         "idx_entries_drive_decision",
         "idx_entries_drive_path",
+        "idx_entries_depth",
         "idx_entries_confidence",
         "idx_audit_entry",
     }
@@ -110,10 +111,10 @@ def test_confidence_check_constraint(db_conn):
     db_conn.execute(
         "INSERT INTO drives (id, label) VALUES ('d1', 'Test Drive')"
     )
-    # confidence > 1.0 should fail
+    # classification_confidence > 1.0 should fail
     with pytest.raises(sqlite3.IntegrityError):
         db_conn.execute(
-            "INSERT INTO entries (drive_id, path, name, entry_type, confidence) "
+            "INSERT INTO entries (drive_id, path, name, entry_type, classification_confidence) "
             "VALUES ('d1', '/a.txt', 'a.txt', 'file', 1.5)"
         )
 
@@ -191,3 +192,134 @@ def test_idempotent_init(db_conn):
     assert row[0] == "Drive"
     conn2.close()
     os.unlink(path)
+
+
+# --- Wavefront schema tests ---
+
+
+def _column_names(conn, table: str) -> set[str]:
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return {r[1] for r in rows}
+
+
+def test_tree_metadata_columns_exist(db_conn):
+    cols = _column_names(db_conn, "entries")
+    expected = {"depth", "parent_path", "child_count", "descendant_file_count", "descendant_folder_count"}
+    assert expected.issubset(cols)
+
+
+def test_dual_confidence_columns_exist(db_conn):
+    cols = _column_names(db_conn, "entries")
+    assert "classification_confidence" in cols
+    assert "decision_confidence" in cols
+    assert "confidence" not in cols
+
+
+def test_tree_metadata_null_vs_zero(db_conn):
+    """NULL means unknown, 0 means actually zero — both must be accepted."""
+    db_conn.execute("INSERT INTO drives (id, label) VALUES ('d1', 'Test')")
+    # All NULL
+    db_conn.execute(
+        "INSERT INTO entries (drive_id, path, name, entry_type) "
+        "VALUES ('d1', '/a', 'a', 'folder')"
+    )
+    row = db_conn.execute("SELECT depth, child_count FROM entries WHERE path = '/a'").fetchone()
+    assert row[0] is None
+    assert row[1] is None
+
+    # All zero
+    db_conn.execute(
+        "INSERT INTO entries (drive_id, path, name, entry_type, depth, parent_path, "
+        "child_count, descendant_file_count, descendant_folder_count) "
+        "VALUES ('d1', '/b', 'b', 'folder', 0, NULL, 0, 0, 0)"
+    )
+    row = db_conn.execute(
+        "SELECT depth, child_count, descendant_file_count, descendant_folder_count "
+        "FROM entries WHERE path = '/b'"
+    ).fetchone()
+    assert row == (0, 0, 0, 0)
+
+
+def test_descend_allowed_for_folder(db_conn):
+    db_conn.execute("INSERT INTO drives (id, label) VALUES ('d1', 'Test')")
+    db_conn.execute(
+        "INSERT INTO entries (drive_id, path, name, entry_type, decision_status) "
+        "VALUES ('d1', '/folder', 'folder', 'folder', 'descend')"
+    )
+    row = db_conn.execute(
+        "SELECT decision_status FROM entries WHERE path = '/folder'"
+    ).fetchone()
+    assert row[0] == "descend"
+
+
+def test_descend_rejected_for_file(db_conn):
+    db_conn.execute("INSERT INTO drives (id, label) VALUES ('d1', 'Test')")
+    with pytest.raises(sqlite3.IntegrityError):
+        db_conn.execute(
+            "INSERT INTO entries (drive_id, path, name, entry_type, decision_status) "
+            "VALUES ('d1', '/a.txt', 'a.txt', 'file', 'descend')"
+        )
+
+
+def test_decision_confidence_check_constraint(db_conn):
+    db_conn.execute("INSERT INTO drives (id, label) VALUES ('d1', 'Test')")
+    # Valid: NULL
+    db_conn.execute(
+        "INSERT INTO entries (drive_id, path, name, entry_type, decision_confidence) "
+        "VALUES ('d1', '/a.txt', 'a.txt', 'file', NULL)"
+    )
+    # Valid: 0.0
+    db_conn.execute(
+        "INSERT INTO entries (drive_id, path, name, entry_type, decision_confidence) "
+        "VALUES ('d1', '/b.txt', 'b.txt', 'file', 0.0)"
+    )
+    # Valid: 1.0
+    db_conn.execute(
+        "INSERT INTO entries (drive_id, path, name, entry_type, decision_confidence) "
+        "VALUES ('d1', '/c.txt', 'c.txt', 'file', 1.0)"
+    )
+    # Invalid: > 1.0
+    with pytest.raises(sqlite3.IntegrityError):
+        db_conn.execute(
+            "INSERT INTO entries (drive_id, path, name, entry_type, decision_confidence) "
+            "VALUES ('d1', '/d.txt', 'd.txt', 'file', 1.5)"
+        )
+
+
+def test_classification_confidence_accepts_valid_range(db_conn):
+    db_conn.execute("INSERT INTO drives (id, label) VALUES ('d1', 'Test')")
+    for val in [None, 0.0, 0.5, 1.0]:
+        path = f"/f_{val}.txt"
+        db_conn.execute(
+            "INSERT INTO entries (drive_id, path, name, entry_type, classification_confidence) "
+            "VALUES ('d1', ?, ?, 'file', ?)",
+            (path, path, val),
+        )
+    # Invalid: negative
+    with pytest.raises(sqlite3.IntegrityError):
+        db_conn.execute(
+            "INSERT INTO entries (drive_id, path, name, entry_type, classification_confidence) "
+            "VALUES ('d1', '/neg.txt', 'neg.txt', 'file', -0.1)"
+        )
+
+
+def test_decision_confidence_rejects_negative(db_conn):
+    db_conn.execute("INSERT INTO drives (id, label) VALUES ('d1', 'Test')")
+    with pytest.raises(sqlite3.IntegrityError):
+        db_conn.execute(
+            "INSERT INTO entries (drive_id, path, name, entry_type, decision_confidence) "
+            "VALUES ('d1', '/neg.txt', 'neg.txt', 'file', -0.1)"
+        )
+
+
+def test_existing_decision_statuses_still_work(db_conn):
+    """Verify the original statuses are unaffected by adding descend."""
+    db_conn.execute("INSERT INTO drives (id, label) VALUES ('d1', 'Test')")
+    for status in ("undecided", "include", "exclude", "defer"):
+        db_conn.execute(
+            "INSERT INTO entries (drive_id, path, name, entry_type, decision_status) "
+            "VALUES ('d1', ?, ?, 'file', ?)",
+            (f"/{status}.txt", f"{status}.txt", status),
+        )
+    count = db_conn.execute("SELECT COUNT(*) FROM entries").fetchone()[0]
+    assert count == 4

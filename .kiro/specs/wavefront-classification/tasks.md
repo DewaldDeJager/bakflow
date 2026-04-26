@@ -2,12 +2,12 @@
 
 ## Task 1: Schema Changes (Req 1.1, 1.2, 1.3, 1.4)
 
-- [ ] 1.1 Add tree metadata columns (`depth`, `parent_path`, `child_count`, `descendant_file_count`, `descendant_folder_count`) to the `entries` table DDL in `src/db/schema.py`. All columns nullable INTEGER/TEXT.
-- [ ] 1.2 Rename `confidence` column to `classification_confidence` and add `decision_confidence` column with same CHECK constraint in `src/db/schema.py`.
-- [ ] 1.3 Add `'descend'` to the `decision_status` CHECK constraint and add table-level CHECK `(decision_status != 'descend' OR entry_type = 'folder')` in `src/db/schema.py`.
-- [ ] 1.4 Add composite index `idx_entries_depth` on `(drive_id, depth, classification_status, decision_status)` in `src/db/schema.py`.
-- [ ] 1.5 Update existing `idx_entries_confidence` index to use `classification_confidence` instead of `confidence`.
-- [ ] 1.6 Write tests for schema changes: verify columns exist, CHECK constraints enforce descend-folder-only, dual confidence range validation, NULL vs 0 semantics for tree metadata.
+- [x] 1.1 Add tree metadata columns (`depth`, `parent_path`, `child_count`, `descendant_file_count`, `descendant_folder_count`) to the `entries` table DDL in `src/db/schema.py`. All columns nullable INTEGER/TEXT.
+- [x] 1.2 Rename `confidence` column to `classification_confidence` and add `decision_confidence` column with same CHECK constraint in `src/db/schema.py`.
+- [x] 1.3 Add `'descend'` to the `decision_status` CHECK constraint and add table-level CHECK `(decision_status != 'descend' OR entry_type = 'folder')` in `src/db/schema.py`.
+- [x] 1.4 Add composite index `idx_entries_depth` on `(drive_id, depth, classification_status, decision_status)` in `src/db/schema.py`.
+- [x] 1.5 Update existing `idx_entries_confidence` index to use `classification_confidence` instead of `confidence`.
+- [x] 1.6 Write tests for schema changes: verify columns exist, CHECK constraints enforce descend-folder-only, dual confidence range validation, NULL vs 0 semantics for tree metadata.
 
 ## Task 2: Pydantic Model Updates (Req 2.1, 2.2)
 

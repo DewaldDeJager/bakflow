@@ -30,6 +30,13 @@ CREATE TABLE IF NOT EXISTS entries (
     size_bytes              INTEGER NOT NULL DEFAULT 0,
     last_modified           TEXT,
 
+    -- Tree metadata (nullable: NULL = unknown, 0 = actually zero)
+    depth                   INTEGER,
+    parent_path             TEXT,
+    child_count             INTEGER,
+    descendant_file_count   INTEGER,
+    descendant_folder_count INTEGER,
+
     -- Classification
     classification_status   TEXT NOT NULL DEFAULT 'unclassified'
         CHECK (classification_status IN (
@@ -41,7 +48,14 @@ CREATE TABLE IF NOT EXISTS entries (
         'system_or_temp', 'unknown_review_needed'
     )),
     file_class              TEXT,
-    confidence              REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
+    classification_confidence REAL CHECK (
+        classification_confidence IS NULL
+        OR (classification_confidence >= 0.0 AND classification_confidence <= 1.0)
+    ),
+    decision_confidence       REAL CHECK (
+        decision_confidence IS NULL
+        OR (decision_confidence >= 0.0 AND decision_confidence <= 1.0)
+    ),
     classification_reasoning TEXT,
     priority_review         INTEGER NOT NULL DEFAULT 0,  -- boolean
 
@@ -51,7 +65,7 @@ CREATE TABLE IF NOT EXISTS entries (
 
     -- Decision
     decision_status         TEXT NOT NULL DEFAULT 'undecided'
-        CHECK (decision_status IN ('undecided', 'include', 'exclude', 'defer')),
+        CHECK (decision_status IN ('undecided', 'include', 'exclude', 'defer', 'descend')),
     decision_destination    TEXT,
     decision_notes          TEXT,
 
@@ -61,7 +75,8 @@ CREATE TABLE IF NOT EXISTS entries (
     created_at              TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at              TEXT NOT NULL DEFAULT (datetime('now')),
 
-    UNIQUE(drive_id, path)
+    UNIQUE(drive_id, path),
+    CHECK (decision_status != 'descend' OR entry_type = 'folder')
 );
 
 -- Query performance indexes
@@ -77,8 +92,11 @@ CREATE INDEX IF NOT EXISTS idx_entries_drive_decision
 CREATE INDEX IF NOT EXISTS idx_entries_drive_path
     ON entries(drive_id, path);
 
+CREATE INDEX IF NOT EXISTS idx_entries_depth
+    ON entries(drive_id, depth, classification_status, decision_status);
+
 CREATE INDEX IF NOT EXISTS idx_entries_confidence
-    ON entries(confidence) WHERE classification_status = 'ai_classified';
+    ON entries(classification_confidence) WHERE classification_status = 'ai_classified';
 
 -- Audit log
 CREATE TABLE IF NOT EXISTS audit_log (
