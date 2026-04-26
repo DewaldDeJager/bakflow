@@ -28,10 +28,11 @@ VALID_TRANSITIONS: dict[str, dict[str, set[str]]] = {
         "reviewed": {"pending_review"},
     },
     "decision_status": {
-        "undecided": {"include", "exclude", "defer"},
-        "include": {"exclude", "defer"},
-        "exclude": {"include", "defer"},
-        "defer": {"include", "exclude"},
+        "undecided": {"include", "exclude", "defer", "descend"},
+        "include": {"exclude", "defer", "descend", "undecided"},
+        "exclude": {"include", "defer", "descend", "undecided"},
+        "defer": {"include", "exclude", "descend", "undecided"},
+        "descend": {"include", "exclude", "defer", "undecided"},
     },
 }
 
@@ -42,6 +43,8 @@ VALID_TRANSITIONS: dict[str, dict[str, set[str]]] = {
 CROSS_DIMENSION_GUARDS: dict[tuple[str, str], Any] = {
     # review_status can only become "reviewed" if classification_status == "ai_classified"
     ("review_status", "reviewed"): lambda entry: entry.classification_status == "ai_classified",
+    # decision_status can only become "descend" if entry is a folder
+    ("decision_status", "descend"): lambda entry: entry.entry_type == "folder",
 }
 
 # ---------------------------------------------------------------------------
@@ -103,11 +106,23 @@ def validate_transition(dimension: str, current: str, target: str, entry: Entry)
     # Cross-dimension guards
     guard = CROSS_DIMENSION_GUARDS.get((dimension, target))
     if guard is not None and not guard(entry):
+        if dimension == "review_status" and target == "reviewed":
+            reason = (
+                "cross-dimension guard failed: "
+                f"classification_status must be 'ai_classified' "
+                f"(currently '{entry.classification_status}')"
+            )
+        elif dimension == "decision_status" and target == "descend":
+            reason = (
+                "cross-dimension guard failed: "
+                f"descend is only valid for folder entries "
+                f"(entry_type is '{entry.entry_type}')"
+            )
+        else:
+            reason = "cross-dimension guard failed"
         raise InvalidTransitionError(
             dimension, current, target,
-            reason="cross-dimension guard failed: "
-                   f"classification_status must be 'ai_classified' "
-                   f"(currently '{entry.classification_status}')",
+            reason=reason,
         )
 
 

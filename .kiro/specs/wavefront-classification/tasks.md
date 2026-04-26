@@ -22,10 +22,10 @@
 
 ## Task 3: Status Engine Updates (Req 3.1, 3.2, 3.3)
 
-- [ ] 3.1 Update `VALID_TRANSITIONS["decision_status"]` to include `'descend'` in all transition sets and add `'undecided'` as a target from all states (full bidirectional) in `src/db/status.py`.
-- [ ] 3.2 Add cross-dimension guard `("decision_status", "descend")` that checks `entry.entry_type == "folder"` in `src/db/status.py`.
-- [ ] 3.3 Update `_fetch_entry` to handle new columns (`classification_confidence`, `decision_confidence`, tree metadata) when constructing Entry from DB row.
-- [ ] 3.4 Write tests for status engine: verify all decision_status transitions including descend, verify descend-folder guard rejects files, verify full bidirectional transitions for folders.
+- [x] 3.1 Update `VALID_TRANSITIONS["decision_status"]` to include `'descend'` in all transition sets and add `'undecided'` as a target from all states (full bidirectional) in `src/db/status.py`.
+- [x] 3.2 Add cross-dimension guard `("decision_status", "descend")` that checks `entry.entry_type == "folder"` in `src/db/status.py`.
+- [x] 3.3 Update `_fetch_entry` to handle new columns (`classification_confidence`, `decision_confidence`, tree metadata) when constructing Entry from DB row.
+- [x] 3.4 Write tests for status engine: verify all decision_status transitions including descend, verify descend-folder guard rejects files, verify full bidirectional transitions for folders.
 
 ## Task 4: Repository — Wavefront Queries (Req 4.1, 4.2, 4.3, 4.4)
 
