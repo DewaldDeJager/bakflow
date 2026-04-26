@@ -28,3 +28,9 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# SQLite
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
