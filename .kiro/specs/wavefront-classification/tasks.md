@@ -45,14 +45,14 @@
 
 ## Task 6: Wavefront Classifier (Req 6.1, 6.2, 6.3, 6.4, 6.5)
 
-- [ ] 6.1 Create `src/classifier/wavefront.py` with `WavefrontConfig` dataclass and `WavefrontClassifier` class.
-- [ ] 6.2 Implement `WavefrontClassifier.classify()` — BFS depth traversal loop, folder batching, LLM calls, result processing.
-- [ ] 6.3 Implement `_build_wavefront_summary()` — builds `WavefrontFolderSummary` with parent context from `get_parent_entry`.
-- [ ] 6.4 Implement `_apply_folder_classification()` — writes classification + decision to DB, transitions statuses, sets priority_review based on decision_confidence.
-- [ ] 6.5 Implement `_classify_remaining_files()` — optional file classification phase using existing provider method.
-- [ ] 6.6 Implement progress reporting via callback at each depth level.
-- [ ] 6.7 Implement per-folder error handling: catch LLM failures, mark as classification_failed, continue with remaining folders.
-- [ ] 6.8 Write tests for wavefront classifier: mock LLM provider, verify BFS ordering, verify pruning skips subtrees, verify progress callbacks, verify error handling.
+- [x] 6.1 Create `src/classifier/wavefront.py` with `WavefrontConfig` dataclass and `WavefrontClassifier` class.
+- [x] 6.2 Implement `WavefrontClassifier.classify()` — BFS depth traversal loop, folder batching, LLM calls, result processing.
+- [x] 6.3 Implement `_build_wavefront_summary()` — builds `WavefrontFolderSummary` with parent context from `get_parent_entry`.
+- [x] 6.4 Implement `_apply_folder_classification()` — writes classification + decision to DB, transitions statuses, sets priority_review based on decision_confidence.
+- [x] 6.5 Implement `_classify_remaining_files()` — optional file classification phase using existing provider method.
+- [x] 6.6 Implement progress reporting via callback at each depth level.
+- [x] 6.7 Implement per-folder error handling: catch LLM failures, mark as classification_failed, continue with remaining folders.
+- [x] 6.8 Write tests for wavefront classifier: mock LLM provider, verify BFS ordering, verify pruning skips subtrees, verify progress callbacks, verify error handling.
 
 ## Task 7: Enhanced Prompts (Req 7.1)
 
