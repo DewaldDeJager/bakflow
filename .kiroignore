@@ -1,0 +1,2 @@
+# Large local data files (CSV imports, SQLite DBs, exports)
+data/

@@ -34,3 +34,6 @@ Thumbs.db
 *.db-wal
 *.db-shm
 *.db-journal
+
+# Local test data
+data/
