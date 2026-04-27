@@ -426,19 +426,24 @@ def import_csv(
                     effective_depth = depth if depth is not None else _derive_depth(norm_path)
                     parent_path = _derive_parent_path(norm_path, effective_depth)
 
-                # count columns: from CSV or NULL
-                child_count = (
-                    _parse_tree_int(row.get(column_mapping.child_item_count, ""))
-                    if has_child_item_count else None
-                )
-                descendant_file_count = (
-                    _parse_tree_int(row.get(column_mapping.files_count, ""))
-                    if has_files_count else None
-                )
-                descendant_folder_count = (
-                    _parse_tree_int(row.get(column_mapping.folders_count, ""))
-                    if has_folders_count else None
-                )
+                # count columns: from CSV or NULL — only meaningful for folders
+                if entry_type == "folder":
+                    child_count = (
+                        _parse_tree_int(row.get(column_mapping.child_item_count, ""))
+                        if has_child_item_count else None
+                    )
+                    descendant_file_count = (
+                        _parse_tree_int(row.get(column_mapping.files_count, ""))
+                        if has_files_count else None
+                    )
+                    descendant_folder_count = (
+                        _parse_tree_int(row.get(column_mapping.folders_count, ""))
+                        if has_folders_count else None
+                    )
+                else:
+                    child_count = None
+                    descendant_file_count = None
+                    descendant_folder_count = None
 
                 batch.append((
                     drive_id,
