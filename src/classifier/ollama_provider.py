@@ -18,12 +18,15 @@ from pydantic import BaseModel, Field, ValidationError
 from src.classifier.prompts import (
     build_file_classification_prompt,
     build_folder_classification_prompt,
+    build_wavefront_folder_prompt,
 )
 from src.db.models import (
     FileClassification,
     FileSummary,
     FolderClassification,
     FolderSummary,
+    WavefrontFolderClassification,
+    WavefrontFolderSummary,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,6 +52,15 @@ class _FolderClassificationItem(BaseModel):
     entry_id: int
     folder_purpose: str
     confidence: float = Field(ge=0.0, le=1.0)
+    reasoning: str
+
+
+class _WavefrontFolderClassificationItem(BaseModel):
+    entry_id: int
+    folder_purpose: str
+    decision: str  # "include", "exclude", "descend"
+    classification_confidence: float = Field(ge=0.0, le=1.0)
+    decision_confidence: float = Field(ge=0.0, le=1.0)
     reasoning: str
 
 
@@ -183,6 +195,68 @@ class OllamaProvider:
 
         return results
 
+    async def classify_folders_wavefront(
+        self, summaries: list[WavefrontFolderSummary]
+    ) -> list[WavefrontFolderClassification]:
+        """Classify folder entries for wavefront traversal via Ollama.
+
+        Folders are classified one at a time. Each call is retried up to
+        ``max_retries`` times with a short delay between attempts.
+        """
+        if not summaries:
+            return []
+
+        max_retries = 2
+        results: list[WavefrontFolderClassification] = []
+        for summary in summaries:
+            prompt = build_wavefront_folder_prompt(summary)
+            schema = _WavefrontFolderClassificationItem.model_json_schema()
+
+            response = None
+            last_exc: Exception | None = None
+            for attempt in range(1, max_retries + 1):
+                try:
+                    response = await self._client.chat(
+                        model=self.model,
+                        messages=[{"role": "user", "content": prompt}],
+                        format=schema,
+                    )
+                    last_exc = None
+                    break
+                except ollama_sdk.ResponseError as exc:
+                    last_exc = exc
+                    logger.warning(
+                        "Ollama response error classifying wavefront folder %s (attempt %d/%d): %s",
+                        summary.path,
+                        attempt,
+                        max_retries,
+                        exc,
+                    )
+                except Exception as exc:
+                    last_exc = exc
+                    logger.warning(
+                        "Ollama connection error classifying wavefront folder %s (attempt %d/%d): %s",
+                        summary.path,
+                        attempt,
+                        max_retries,
+                        exc,
+                    )
+
+                if attempt < max_retries:
+                    await asyncio.sleep(1.0)
+
+            if last_exc is not None:
+                if isinstance(last_exc, ollama_sdk.ResponseError):
+                    raise last_exc
+                raise ConnectionError(
+                    f"Failed to connect to Ollama after {max_retries} attempts: {last_exc}"
+                ) from last_exc
+
+            classification = self._parse_wavefront_folder_response(response, summary)
+            results.append(classification)
+
+        return results
+
     # -----------------------------------------------------------------------
     # Response parsing helpers
     # -----------------------------------------------------------------------
@@ -252,3 +326,36 @@ class OllamaProvider:
             fc = fc.model_copy(update={"entry_id": summary.entry_id})
 
         return fc
+
+    def _parse_wavefront_folder_response(
+        self, response: Any, summary: WavefrontFolderSummary
+    ) -> WavefrontFolderClassification:
+        """Parse Ollama's structured response into a WavefrontFolderClassification."""
+        content = response.message.content
+        try:
+            data = json.loads(content)
+        except (json.JSONDecodeError, TypeError) as exc:
+            logger.error(
+                "Malformed JSON from Ollama for wavefront folder classification: %s", exc
+            )
+            raise ValueError(
+                f"Malformed JSON response from Ollama: {exc}"
+            ) from exc
+
+        try:
+            wfc = WavefrontFolderClassification.model_validate(data)
+        except ValidationError as exc:
+            raise ValueError(
+                f"Invalid wavefront folder classification from Ollama: {exc}"
+            ) from exc
+
+        # Ensure the entry_id matches
+        if wfc.entry_id != summary.entry_id:
+            logger.warning(
+                "Ollama returned entry_id %d but expected %d, correcting",
+                wfc.entry_id,
+                summary.entry_id,
+            )
+            wfc = wfc.model_copy(update={"entry_id": summary.entry_id})
+
+        return wfc

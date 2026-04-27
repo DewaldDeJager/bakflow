@@ -18,12 +18,15 @@ from pydantic import BaseModel, Field, ValidationError
 from src.classifier.prompts import (
     build_file_classification_prompt,
     build_folder_classification_prompt,
+    build_wavefront_folder_prompt,
 )
 from src.db.models import (
     FileClassification,
     FileSummary,
     FolderClassification,
     FolderSummary,
+    WavefrontFolderClassification,
+    WavefrontFolderSummary,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,6 +59,15 @@ class _FolderClassificationItem(BaseModel):
     entry_id: int
     folder_purpose: str
     confidence: float = Field(ge=0.0, le=1.0)
+    reasoning: str
+
+
+class _WavefrontFolderClassificationItem(BaseModel):
+    entry_id: int
+    folder_purpose: str
+    decision: str  # "include", "exclude", "descend"
+    classification_confidence: float = Field(ge=0.0, le=1.0)
+    decision_confidence: float = Field(ge=0.0, le=1.0)
     reasoning: str
 
 
@@ -114,6 +126,32 @@ class OpenAIProvider:
                 schema_name="folder_classification",
             )
             classification = self._parse_folder_response(response, summary)
+            results.append(classification)
+
+        return results
+
+    async def classify_folders_wavefront(
+        self, summaries: list[WavefrontFolderSummary]
+    ) -> list[WavefrontFolderClassification]:
+        """Classify folder entries for wavefront traversal via OpenAI.
+
+        Folders are classified one at a time since each prompt includes
+        aggregated folder statistics specific to that folder.
+        """
+        if not summaries:
+            return []
+
+        schema = _WavefrontFolderClassificationItem.model_json_schema()
+        results: list[WavefrontFolderClassification] = []
+
+        for summary in summaries:
+            prompt = build_wavefront_folder_prompt(summary)
+            response = await self._call_with_backoff(
+                prompt,
+                schema,
+                schema_name="wavefront_folder_classification",
+            )
+            classification = self._parse_wavefront_folder_response(response, summary)
             results.append(classification)
 
         return results
@@ -243,3 +281,36 @@ class OpenAIProvider:
             fc = fc.model_copy(update={"entry_id": summary.entry_id})
 
         return fc
+
+    def _parse_wavefront_folder_response(
+        self, response: Any, summary: WavefrontFolderSummary
+    ) -> WavefrontFolderClassification:
+        """Parse OpenAI's structured response into a WavefrontFolderClassification."""
+        content = response.choices[0].message.content
+        try:
+            data = json.loads(content)
+        except (json.JSONDecodeError, TypeError) as exc:
+            logger.error(
+                "Malformed JSON from OpenAI for wavefront folder classification: %s", exc
+            )
+            raise ValueError(
+                f"Malformed JSON response from OpenAI: {exc}"
+            ) from exc
+
+        try:
+            wfc = WavefrontFolderClassification.model_validate(data)
+        except ValidationError as exc:
+            raise ValueError(
+                f"Invalid wavefront folder classification from OpenAI: {exc}"
+            ) from exc
+
+        # Ensure the entry_id matches
+        if wfc.entry_id != summary.entry_id:
+            logger.warning(
+                "OpenAI returned entry_id %d but expected %d, correcting",
+                wfc.entry_id,
+                summary.entry_id,
+            )
+            wfc = wfc.model_copy(update={"entry_id": summary.entry_id})
+
+        return wfc

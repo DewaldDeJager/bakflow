@@ -14,6 +14,8 @@ from src.db.models import (
     FileSummary,
     FolderClassification,
     FolderSummary,
+    WavefrontFolderClassification,
+    WavefrontFolderSummary,
 )
 
 
@@ -27,6 +29,7 @@ class ClassifierConfig:
     api_key: str | None = None
     confidence_threshold: float = 0.7
     batch_size: int = 50
+    wavefront_batch_size: int = 10
 
 
 @runtime_checkable
@@ -43,6 +46,13 @@ class LLMProvider(Protocol):
         self, summaries: list[FolderSummary]
     ) -> list[FolderClassification]:
         """Send folder summaries, get back structured Folder_Purpose + confidence."""
+        ...
+
+    async def classify_folders_wavefront(
+        self,
+        summaries: list[WavefrontFolderSummary],
+    ) -> list[WavefrontFolderClassification]:
+        """Classify folders with triage signal for wavefront traversal."""
         ...
 
 

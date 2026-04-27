@@ -65,10 +65,10 @@
 
 ## Task 8: Provider Protocol Update (Req 8.1)
 
-- [ ] 8.1 Add `classify_folders_wavefront(summaries: list[WavefrontFolderSummary]) -> list[WavefrontFolderClassification]` method to `LLMProvider` protocol in `src/classifier/provider.py`.
-- [ ] 8.2 Update `ClassifierConfig` to include `wavefront_batch_size` field.
-- [ ] 8.3 Implement `classify_folders_wavefront` in OllamaProvider (or whichever provider is primary) using the new wavefront prompt.
-- [ ] 8.4 Write tests for provider: verify protocol includes new method, verify implementation calls wavefront prompt and parses response.
+- [x] 8.1 Add `classify_folders_wavefront(summaries: list[WavefrontFolderSummary]) -> list[WavefrontFolderClassification]` method to `LLMProvider` protocol in `src/classifier/provider.py`.
+- [x] 8.2 Update `ClassifierConfig` to include `wavefront_batch_size` field.
+- [x] 8.3 Implement `classify_folders_wavefront` in OllamaProvider (or whichever provider is primary) using the new wavefront prompt.
+- [x] 8.4 Write tests for provider: verify protocol includes new method, verify implementation calls wavefront prompt and parses response.
 
 ## Task 9: MCP Server Updates (Req 9.1, 9.2, 9.3, 9.4)
 
