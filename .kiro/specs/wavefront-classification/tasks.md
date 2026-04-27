@@ -89,9 +89,9 @@ Skipped: wavefront parameters (max_depth, classify_files, batch_size) are alread
 - [x] 11.1 Update `BatchClassifier` in `src/classifier/batch.py` to use `classification_confidence` instead of `confidence` in all DB writes and model references.
 - [x] 11.2 Update `submit_classification` MCP tool to use `classification_confidence` instead of `confidence`.
 - [x] 11.3 Update any existing tests that reference the `confidence` field to use `classification_confidence`.
-- [ ] 11.4 Update `_row_to_entry` and `_fetch_entry` helpers to handle the renamed column and new columns.
+- [x] 11.4 Update `_row_to_entry` and `_fetch_entry` helpers to handle the renamed column and new columns.
 
 ## Task 12: Integration Verification
 
-- [ ] 12.1 Run full test suite to verify no regressions from schema/model changes.
-- [ ] 12.2 Verify end-to-end: init_db → import CSV with tree columns → run wavefront classifier (mocked LLM) → verify depth-ordered classification → verify pruning → verify manifest excludes descend.
+- [x] 12.1 Run full test suite to verify no regressions from schema/model changes.
+- [x] 12.2 Verify end-to-end: init_db → import CSV with tree columns → run wavefront classifier (mocked LLM) → verify depth-ordered classification → verify pruning → verify manifest excludes descend.
