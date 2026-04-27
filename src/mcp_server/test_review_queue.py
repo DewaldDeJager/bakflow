@@ -40,7 +40,11 @@ def _entry_spec(draw):
     """Generate a spec for an entry with a classification status and confidence."""
     status = draw(st.sampled_from(_classification_statuses))
     confidence = draw(_confidence_strategy) if status == "ai_classified" else None
-    return {"classification_status": status, "classification_confidence": confidence}
+    return {
+        "classification_status": status,
+        "classification_confidence": confidence,
+        "decision_confidence": confidence,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -81,8 +85,9 @@ def _create_drive_with_mixed_entries(repo, conn, entry_specs):
 
         if status == "ai_classified":
             conn.execute(
-                "UPDATE entries SET file_class = 'document', classification_confidence = ? WHERE id = ?",
-                (confidence, entry_id),
+                "UPDATE entries SET file_class = 'document', "
+                "classification_confidence = ?, decision_confidence = ? WHERE id = ?",
+                (confidence, spec.get("decision_confidence", confidence), entry_id),
             )
             conn.commit()
             apply_transition(conn, entry_id, "classification_status", "ai_classified")
@@ -155,7 +160,7 @@ class TestReviewQueueFiltering:
     )
     @settings(max_examples=100)
     def test_ordered_by_confidence_ascending(self, entry_specs):
-        """Returned entries are ordered by confidence ascending."""
+        """Returned entries are ordered by decision_confidence ascending."""
         conn, repo, path = _make_temp_db()
         try:
             drive_id = _create_drive_with_mixed_entries(repo, conn, entry_specs)
@@ -163,8 +168,13 @@ class TestReviewQueueFiltering:
                 get_review_queue(drive_id=drive_id, limit=1000)
             )
             assert "error" not in result
-            confidences = [e["classification_confidence"] for e in result["entries"]]
-            assert confidences == sorted(confidences)
+            confidences = [e["decision_confidence"] for e in result["entries"]]
+            # NULLs sort first (as None), then ascending numeric values
+            nones = [c for c in confidences if c is None]
+            nums = [c for c in confidences if c is not None]
+            assert nums == sorted(nums)
+            # All Nones should be at the beginning
+            assert confidences == nones + nums
         finally:
             conn.close()
             os.unlink(path)

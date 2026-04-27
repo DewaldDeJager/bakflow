@@ -34,6 +34,7 @@ EXPECTED_TOOLS = {
     "get_folder_summary",
     "submit_classification",
     "classify_batch",
+    "run_wavefront_classification",
     "get_review_queue",
     "record_decision",
     "get_drive_progress",
@@ -106,7 +107,7 @@ def _seed_drive_with_entries(repo, conn, count=5):
 # ---------------------------------------------------------------------------
 
 class TestToolRegistration:
-    """Verify all 9 tools are registered and discoverable via FastMCP."""
+    """Verify all 10 tools are registered and discoverable via FastMCP."""
 
     def test_all_nine_tools_registered(self):
         """list_tools returns exactly the 9 expected tools."""

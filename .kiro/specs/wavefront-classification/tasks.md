@@ -72,19 +72,17 @@
 
 ## Task 9: MCP Server Updates (Req 9.1, 9.2, 9.3, 9.4)
 
-- [ ] 9.1 Add `run_wavefront_classification` MCP tool with `task=True` decorator. Accept `drive_id`, `max_depth`, `classify_files`, `batch_size`. Wire to `WavefrontClassifier.classify()` with progress reporting via `ctx.report_progress()`.
-- [ ] 9.2 Update `record_decision` to accept `'descend'` as a valid decision for folder entries. Add validation that rejects `descend` for file entries.
-- [ ] 9.3 Update cascade logic in `_cascade_decision`: skip children where `review_status = 'reviewed'` (human already made explicit decision).
-- [ ] 9.4 Update `get_decision_manifest` to exclude entries with `decision_status = 'descend'`. Update `valid_decisions` set to not include `'descend'` as a filter option.
-- [ ] 9.5 Update `get_review_queue` to sort by `decision_confidence ASC` instead of `confidence ASC`. Handle NULL `decision_confidence` (sort first).
-- [ ] 9.6 Update all references from `confidence` to `classification_confidence` or `decision_confidence` as appropriate across server.py.
-- [ ] 9.7 Write tests for MCP server updates: verify wavefront tool registration, verify record_decision with descend, verify manifest excludes descend, verify review queue sort order.
+- [x] 9.1 Add `run_wavefront_classification` MCP tool with `task=True` decorator. Accept `drive_id`, `max_depth`, `classify_files`, `batch_size`. Wire to `WavefrontClassifier.classify()` with progress reporting via `ctx.report_progress()`.
+- [x] 9.2 Update `record_decision` to accept `'descend'` as a valid decision for folder entries. Add validation that rejects `descend` for file entries.
+- [x] 9.3 Update cascade logic in `_cascade_decision`: skip children where `review_status = 'reviewed'` (human already made explicit decision).
+- [x] 9.4 Update `get_decision_manifest` to exclude entries with `decision_status = 'descend'`. Update `valid_decisions` set to not include `'descend'` as a filter option.
+- [x] 9.5 Update `get_review_queue` to sort by `decision_confidence ASC` instead of `confidence ASC`. Handle NULL `decision_confidence` (sort first).
+- [x] 9.6 Update all references from `confidence` to `classification_confidence` or `decision_confidence` as appropriate across server.py.
+- [x] 9.7 Write tests for MCP server updates: verify wavefront tool registration, verify record_decision with descend, verify manifest excludes descend, verify review queue sort order.
 
-## Task 10: Configuration (Req 10.1)
+## Task 10: Configuration (Req 10.1) — SKIPPED
 
-- [ ] 10.1 Add `wavefront_max_depth: int | None`, `wavefront_classify_files: bool`, `wavefront_batch_size: int` to `AppConfig` in `src/config.py` with environment variable overrides (`BF_WAVEFRONT_MAX_DEPTH`, `BF_WAVEFRONT_CLASSIFY_FILES`, `BF_WAVEFRONT_BATCH_SIZE`).
-- [ ] 10.2 Add `_env_int_optional` helper function for nullable integer env vars.
-- [ ] 10.3 Write tests for config: verify defaults, verify env var overrides.
+Skipped: wavefront parameters (max_depth, classify_files, batch_size) are already controllable via the `run_wavefront_classification` MCP tool parameters. App-level env-var config is redundant.
 
 ## Task 11: Update Existing Code References
 

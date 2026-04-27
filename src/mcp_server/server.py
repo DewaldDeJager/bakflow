@@ -25,6 +25,7 @@ from mcp.server.fastmcp import FastMCP
 
 from src.classifier.batch import BatchClassifier
 from src.classifier.provider import ClassifierConfig, create_provider
+from src.classifier.wavefront import WavefrontClassifier, WavefrontConfig
 from src.config import AppConfig
 from src.db.models import Entry
 from src.db.repository import Repository, normalize_path
@@ -398,6 +399,76 @@ async def classify_batch(
 
 
 # ---------------------------------------------------------------------------
+# Tool: run_wavefront_classification
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+async def run_wavefront_classification(
+    drive_id: str,
+    max_depth: int | None = None,
+    classify_files: bool = True,
+    batch_size: int = 10,
+) -> dict:
+    """Run tree-aware wavefront classification for a drive.
+
+    Classifies folders top-down by depth level using triage signals
+    (include/exclude/descend) to prune subtrees early.
+
+    Args:
+        drive_id: UUID of the drive (also accepts volume serial number)
+        max_depth: Maximum depth to traverse (None = no limit)
+        classify_files: Whether to classify individual files after folder pass
+        batch_size: Number of folders per LLM call
+    """
+    if not drive_id:
+        return _error_response(
+            "MISSING_PARAMETER", "drive_id is required", {"parameter": "drive_id"}
+        )
+    if batch_size < 1:
+        return _error_response(
+            "INVALID_PARAMETER",
+            "batch_size must be a positive integer",
+            {"parameter": "batch_size", "value": batch_size},
+        )
+
+    drive = _resolve_drive(drive_id)
+    if isinstance(drive, dict):
+        return drive
+
+    if _batch_classifier is None:
+        return _error_response(
+            "SERVER_NOT_READY",
+            "Batch classifier not initialised — check LLM provider configuration",
+        )
+
+    conn = get_conn()
+    repo = get_repo()
+
+    config = WavefrontConfig(
+        max_depth=max_depth,
+        classify_files=classify_files,
+        batch_size=batch_size,
+    )
+    classifier = WavefrontClassifier(
+        provider=_batch_classifier._provider,
+        repo=repo,
+        conn=conn,
+        config=config,
+    )
+
+    try:
+        result = await classifier.classify(drive.id)
+    except Exception as exc:
+        return _error_response(
+            "CLASSIFICATION_ERROR",
+            f"Wavefront classification failed: {exc}",
+        )
+
+    return result.model_dump(mode="json")
+
+
+# ---------------------------------------------------------------------------
 # Tool: get_review_queue
 # ---------------------------------------------------------------------------
 
@@ -411,13 +482,15 @@ async def get_review_queue(
     limit: int = 100,
     offset: int = 0,
 ) -> dict:
-    """Get entries ready for human review, ordered by confidence ascending.
+    """Get entries ready for human review, ordered by decision_confidence ascending.
+
+    Entries with NULL decision_confidence appear first (most uncertain).
 
     Args:
         drive_id: UUID of the drive (also accepts volume serial number)
         category: Filter by Folder_Purpose or File_Class
-        min_confidence: Minimum confidence threshold
-        max_confidence: Maximum confidence threshold
+        min_confidence: Minimum decision_confidence threshold
+        max_confidence: Maximum decision_confidence threshold
         limit: Page size (default 100)
         offset: Pagination offset (default 0)
     """
@@ -483,14 +556,14 @@ async def record_decision(
 
     Args:
         entry_id: ID of the entry
-        decision: include, exclude, or defer
+        decision: include, exclude, defer, or descend (descend only valid for folders)
         destination: Backup destination path (optional)
         notes: User notes (optional)
         override_classification: New classification to override AI suggestion (optional)
         cascade_to_children: Apply decision to undecided child entries (optional)
         request_reclassification: Mark related entries for reclassification after override (optional)
     """
-    valid_decisions = {"include", "exclude", "defer"}
+    valid_decisions = {"include", "exclude", "defer", "descend"}
     if decision not in valid_decisions:
         return _error_response(
             "INVALID_PARAMETER",
@@ -507,6 +580,14 @@ async def record_decision(
             "ENTRY_NOT_FOUND",
             f"No entry found with id={entry_id}",
             {"entry_id": entry_id},
+        )
+
+    # Validate descend is only for folders
+    if decision == "descend" and entry.entry_type != "folder":
+        return _error_response(
+            "INVALID_PARAMETER",
+            "descend decision is only valid for folder entries",
+            {"parameter": "decision", "value": decision, "entry_type": entry.entry_type},
         )
 
     # Handle classification override
@@ -596,14 +677,13 @@ def _cascade_decision(
     destination: str | None,
     notes: str | None,
 ) -> dict:
-    """Apply a decision to undecided children of a folder entry.
+    """Apply a decision to children of a folder entry, skipping already-reviewed children.
 
     When a user explicitly cascades a decision to children, the intent is
-    to apply it to the entire subtree.  Children that are already
-    ``ai_classified`` go through the normal transition path.  Children
-    that are still ``unclassified`` (or ``classification_failed``) are
-    updated directly — the cascade is treated as an explicit human
-    override that bypasses the classification → review pipeline.
+    to apply it to the entire subtree.  Children where ``review_status``
+    is ``'reviewed'`` are skipped — a human already made an explicit
+    decision for those entries.  Children that are still ``pending_review``
+    get the cascaded decision regardless of their current decision_status.
     """
     children = repo.get_child_entries(parent.drive_id, parent.path)
     updated = 0
@@ -611,11 +691,12 @@ def _cascade_decision(
     skip_reasons: list[dict] = []
 
     for child in children:
-        if child.decision_status != "undecided":
+        if child.review_status == "reviewed":
+            # Human already made explicit decision — don't override
             skipped += 1
             skip_reasons.append({
                 "entry_id": child.id,
-                "reason": f"already has decision_status={child.decision_status}",
+                "reason": "already reviewed by human",
             })
             continue
 
@@ -691,9 +772,12 @@ async def get_decision_manifest(
 ) -> dict:
     """Get the decision manifest for export.
 
+    Entries with ``decision_status = 'descend'`` are excluded — descend is
+    an intermediate routing decision, not a final exportable decision.
+
     Args:
         drive_id: UUID of the drive (also accepts volume serial number)
-        decision_filter: Filter by decision_status (default: include)
+        decision_filter: Filter by decision_status (default: include). Does not accept 'descend'.
     """
     if not drive_id:
         return _error_response(

@@ -235,12 +235,12 @@ class TestGetReviewQueue:
         for i, e in enumerate(all_e):
             db_conn.execute(
                 "UPDATE entries SET classification_status='ai_classified', "
-                "classification_confidence=?, file_class='doc' WHERE id=?",
+                "classification_confidence=0.8, decision_confidence=?, file_class='doc' WHERE id=?",
                 (0.9 - i * 0.3, e.id),
             )
         db_conn.commit()
         queue = repo.get_review_queue(d.id)
-        confs = [e.classification_confidence for e in queue]
+        confs = [e.decision_confidence for e in queue]
         assert confs == sorted(confs)
 
     def test_category_filter(self, repo, db_conn):

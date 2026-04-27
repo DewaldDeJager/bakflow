@@ -262,15 +262,17 @@ class Repository:
         return [_row_to_entry(r, cols) for r in rows]
 
     def get_review_queue(self, drive_id: str, filters: dict | None = None) -> list[Entry]:
-        """Return entries ready for human review, ordered by confidence ASC.
+        """Return entries ready for human review, ordered by decision_confidence ASC.
+
+        Entries with NULL decision_confidence appear first (most uncertain).
 
         Base filter: ``classification_status = 'ai_classified'`` AND
         ``review_status = 'pending_review'``.
 
         Optional *filters* keys:
         - ``category``: matches against ``file_class`` OR ``folder_purpose``
-        - ``min_confidence``: float lower bound (inclusive)
-        - ``max_confidence``: float upper bound (inclusive)
+        - ``min_confidence``: float lower bound on decision_confidence (inclusive)
+        - ``max_confidence``: float upper bound on decision_confidence (inclusive)
         - ``limit``: max rows
         - ``offset``: pagination offset
 
@@ -292,15 +294,15 @@ class Repository:
             params.extend([filters["category"], filters["category"]])
 
         if "min_confidence" in filters and filters["min_confidence"] is not None:
-            clauses.append("classification_confidence >= ?")
+            clauses.append("decision_confidence >= ?")
             params.append(filters["min_confidence"])
 
         if "max_confidence" in filters and filters["max_confidence"] is not None:
-            clauses.append("classification_confidence <= ?")
+            clauses.append("decision_confidence <= ?")
             params.append(filters["max_confidence"])
 
         sql = "SELECT * FROM entries WHERE " + " AND ".join(clauses)
-        sql += " ORDER BY classification_confidence ASC"
+        sql += " ORDER BY CASE WHEN decision_confidence IS NULL THEN 0 ELSE 1 END, decision_confidence ASC"
 
         if "limit" in filters and filters["limit"] is not None:
             sql += " LIMIT ?"
@@ -362,6 +364,8 @@ class Repository:
         """Return reviewed entries, optionally filtered by decision status.
 
         Base filter: ``review_status = 'reviewed'``.
+        Always excludes entries with ``decision_status = 'descend'`` (intermediate
+        routing decision, not a final exportable decision).
         Optional *filters* key ``decision_status`` narrows to a specific
         decision value (e.g. ``'include'``).
 
@@ -371,7 +375,7 @@ class Repository:
             filters = {}
 
         cols = self._entry_columns()
-        clauses = ["drive_id = ?", "review_status = 'reviewed'"]
+        clauses = ["drive_id = ?", "review_status = 'reviewed'", "decision_status != 'descend'"]
         params: list[object] = [drive_id]
 
         if "decision_status" in filters and filters["decision_status"] is not None:
