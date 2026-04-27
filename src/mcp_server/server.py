@@ -209,7 +209,17 @@ async def get_folder_summary(drive_id: str, path: str) -> dict:
         return drive
 
     repo = get_repo()
-    children = repo.get_child_entries(drive.id, normalize_path(path))
+    normalized = normalize_path(path)
+
+    # Verify the folder actually exists as an entry in this drive
+    if not repo.entry_exists(drive.id, normalized, entry_type="folder"):
+        return _error_response(
+            "NOT_FOUND",
+            f"Folder not found: {path}",
+            {"drive_id": drive.id, "path": path},
+        )
+
+    children = repo.get_child_entries(drive.id, normalized)
 
     file_children = [c for c in children if c.entry_type == "file"]
     folder_children = [c for c in children if c.entry_type == "folder"]
@@ -221,7 +231,7 @@ async def get_folder_summary(drive_id: str, path: str) -> dict:
         ext_counts[ext] = ext_counts.get(ext, 0) + 1
 
     # Direct subfolders only
-    prefix = normalize_path(path).rstrip("/") + "/"
+    prefix = normalized.rstrip("/") + "/"
     folder_path_normalized = prefix.rstrip("/")
     direct_subfolders = [
         c.name

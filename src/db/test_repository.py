@@ -346,3 +346,33 @@ class TestGetChildEntries:
         assert "/parent/sub/deep.txt" in paths
         assert "/other/file.txt" not in paths
         assert "/parent" not in paths
+
+
+class TestEntryExists:
+    def test_returns_false_when_no_entries(self, repo):
+        d = repo.create_drive("E")
+        assert repo.entry_exists(d.id, "/nope") is False
+
+    def test_returns_true_for_existing_entry(self, repo):
+        d = repo.create_drive("E")
+        repo.create_entries_bulk([
+            _make_entry_dict(d.id, "/a.txt", "a.txt", "file"),
+        ])
+        assert repo.entry_exists(d.id, "/a.txt") is True
+
+    def test_filters_by_entry_type(self, repo):
+        d = repo.create_drive("E")
+        repo.create_entries_bulk([
+            _make_entry_dict(d.id, "/docs", "docs", "folder"),
+        ])
+        assert repo.entry_exists(d.id, "/docs", entry_type="folder") is True
+        assert repo.entry_exists(d.id, "/docs", entry_type="file") is False
+
+    def test_scoped_to_drive(self, repo):
+        d1 = repo.create_drive("D1")
+        d2 = repo.create_drive("D2")
+        repo.create_entries_bulk([
+            _make_entry_dict(d1.id, "/shared.txt", "shared.txt", "file"),
+        ])
+        assert repo.entry_exists(d1.id, "/shared.txt") is True
+        assert repo.entry_exists(d2.id, "/shared.txt") is False

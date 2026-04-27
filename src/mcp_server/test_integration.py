@@ -151,14 +151,23 @@ class TestToolCallability:
     def test_get_folder_summary_callable(self, db_env):
         conn, repo, _ = db_env
         drive = repo.create_drive(label="test")
-        repo.create_entries_bulk([{
-            "drive_id": drive.id,
-            "path": "/root/file.txt",
-            "name": "file.txt",
-            "entry_type": "file",
-            "extension": ".txt",
-            "size_bytes": 42,
-        }])
+        repo.create_entries_bulk([
+            {
+                "drive_id": drive.id,
+                "path": "/root",
+                "name": "root",
+                "entry_type": "folder",
+                "size_bytes": 0,
+            },
+            {
+                "drive_id": drive.id,
+                "path": "/root/file.txt",
+                "name": "file.txt",
+                "entry_type": "file",
+                "extension": ".txt",
+                "size_bytes": 42,
+            },
+        ])
         result = asyncio.run(
             mcp.call_tool("get_folder_summary", {"drive_id": drive.id, "path": "/root"})
         )

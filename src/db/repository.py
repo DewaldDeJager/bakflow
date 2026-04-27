@@ -188,6 +188,21 @@ class Repository:
             return None
         return _row_to_entry(row, cols)
 
+    def entry_exists(self, drive_id: str, path: str, entry_type: str | None = None) -> bool:
+        """Check whether an entry exists for the given drive and path.
+
+        Args:
+            drive_id: The drive UUID.
+            path: Normalized entry path.
+            entry_type: If provided, also filter by ``'file'`` or ``'folder'``.
+        """
+        sql = "SELECT 1 FROM entries WHERE drive_id = ? AND path = ?"
+        params: list[str] = [drive_id, path]
+        if entry_type is not None:
+            sql += " AND entry_type = ?"
+            params.append(entry_type)
+        return self._conn.execute(sql, params).fetchone() is not None
+
     def get_entries_by_drive(self, drive_id: str, **filters: object) -> list[Entry]:
         """Return entries for a drive with optional filters.
 
