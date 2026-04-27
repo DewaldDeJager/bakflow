@@ -483,11 +483,16 @@ class Repository:
         ).fetchall()
 
         for row_id, path in rows:
-            depth = path.count("/") - 1 if path.startswith("/") else path.count("/")
+            stripped = path.rstrip("/")
+            depth = stripped.count("/")
             parent = None
             if depth > 0:
-                last_slash = path.rfind("/")
-                parent = path[:last_slash] if last_slash > 0 else "/"
+                last_slash = stripped.rfind("/")
+                if last_slash >= 0:
+                    parent = stripped[:last_slash]
+                    # Drive root: "F:" → "F:/"
+                    if len(parent) == 2 and parent[1] == ":":
+                        parent += "/"
 
             # Only update NULL columns
             parts: list[str] = []
@@ -526,12 +531,16 @@ class Repository:
         updated += cur.rowcount
 
         # --- Phase 3: descendant_file_count for folders -------------------
+        # Use RTRIM to strip trailing '/' then re-append '/' so that root
+        # paths like 'F:/' produce the prefix 'F:/' (not 'F://').
+        # Exclude self-matches with d.path != entries.path.
         cur = self._conn.execute(
             "UPDATE entries SET descendant_file_count = ("
             "  SELECT COUNT(*) FROM entries d"
             "  WHERE d.drive_id = entries.drive_id"
             "    AND d.entry_type = 'file'"
-            "    AND d.path LIKE entries.path || '/%'"
+            "    AND d.path LIKE RTRIM(entries.path, '/') || '/%'"
+            "    AND d.path != entries.path"
             ") WHERE drive_id = ? AND entry_type = 'folder' AND descendant_file_count IS NULL",
             (drive_id,),
         )
@@ -543,7 +552,8 @@ class Repository:
             "  SELECT COUNT(*) FROM entries d"
             "  WHERE d.drive_id = entries.drive_id"
             "    AND d.entry_type = 'folder'"
-            "    AND d.path LIKE entries.path || '/%'"
+            "    AND d.path LIKE RTRIM(entries.path, '/') || '/%'"
+            "    AND d.path != entries.path"
             ") WHERE drive_id = ? AND entry_type = 'folder' AND descendant_folder_count IS NULL",
             (drive_id,),
         )

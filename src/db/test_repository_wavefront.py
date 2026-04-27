@@ -303,9 +303,9 @@ class TestComputeTreeMetadata:
     def test_sets_depth_from_path_separators(self, repo, db_conn):
         d = repo.create_drive("D")
         entries = [
-            _entry(d.id, "/root", "root", "folder"),
-            _entry(d.id, "/root/child", "child", "folder"),
-            _entry(d.id, "/root/child/grandchild", "grandchild", "folder"),
+            _entry(d.id, "C:/", "C:", "folder"),
+            _entry(d.id, "C:/child", "child", "folder"),
+            _entry(d.id, "C:/child/grandchild", "grandchild", "folder"),
         ]
         repo.create_entries_bulk(entries)
         repo.compute_tree_metadata(d.id)
@@ -314,16 +314,16 @@ class TestComputeTreeMetadata:
             (d.id,),
         ).fetchall()
         depth_map = {r[0]: r[1] for r in rows}
-        assert depth_map["/root"] == 0
-        assert depth_map["/root/child"] == 1
-        assert depth_map["/root/child/grandchild"] == 2
+        assert depth_map["C:/"] == 0
+        assert depth_map["C:/child"] == 1
+        assert depth_map["C:/child/grandchild"] == 2
 
     def test_sets_parent_path_from_dirname(self, repo, db_conn):
         d = repo.create_drive("D")
         entries = [
-            _entry(d.id, "/root", "root", "folder"),
-            _entry(d.id, "/root/child", "child", "folder"),
-            _entry(d.id, "/root/child/file.txt", "file.txt", "file", extension=".txt"),
+            _entry(d.id, "C:/", "C:", "folder"),
+            _entry(d.id, "C:/child", "child", "folder"),
+            _entry(d.id, "C:/child/file.txt", "file.txt", "file", extension=".txt"),
         ]
         repo.create_entries_bulk(entries)
         repo.compute_tree_metadata(d.id)
@@ -332,22 +332,22 @@ class TestComputeTreeMetadata:
             (d.id,),
         ).fetchall()
         parent_map = {r[0]: r[1] for r in rows}
-        assert parent_map["/root"] is None  # root has no parent
-        assert parent_map["/root/child"] == "/root"
-        assert parent_map["/root/child/file.txt"] == "/root/child"
+        assert parent_map["C:/"] is None  # root has no parent
+        assert parent_map["C:/child"] == "C:/"
+        assert parent_map["C:/child/file.txt"] == "C:/child"
 
     def test_sets_child_count_for_folders(self, repo, db_conn):
         d = repo.create_drive("D")
         entries = [
-            _entry(d.id, "/root", "root", "folder"),
-            _entry(d.id, "/root/a", "a", "folder"),
-            _entry(d.id, "/root/b", "b", "folder"),
-            _entry(d.id, "/root/c.txt", "c.txt", "file", extension=".txt"),
+            _entry(d.id, "C:/", "C:", "folder"),
+            _entry(d.id, "C:/a", "a", "folder"),
+            _entry(d.id, "C:/b", "b", "folder"),
+            _entry(d.id, "C:/c.txt", "c.txt", "file", extension=".txt"),
         ]
         repo.create_entries_bulk(entries)
         repo.compute_tree_metadata(d.id)
         row = db_conn.execute(
-            "SELECT child_count FROM entries WHERE drive_id = ? AND path = '/root'",
+            "SELECT child_count FROM entries WHERE drive_id = ? AND path = 'C:/'",
             (d.id,),
         ).fetchone()
         assert row[0] == 3  # a, b, c.txt
@@ -355,15 +355,15 @@ class TestComputeTreeMetadata:
     def test_sets_descendant_file_count(self, repo, db_conn):
         d = repo.create_drive("D")
         entries = [
-            _entry(d.id, "/root", "root", "folder"),
-            _entry(d.id, "/root/sub", "sub", "folder"),
-            _entry(d.id, "/root/a.txt", "a.txt", "file", extension=".txt"),
-            _entry(d.id, "/root/sub/b.txt", "b.txt", "file", extension=".txt"),
+            _entry(d.id, "C:/", "C:", "folder"),
+            _entry(d.id, "C:/sub", "sub", "folder"),
+            _entry(d.id, "C:/a.txt", "a.txt", "file", extension=".txt"),
+            _entry(d.id, "C:/sub/b.txt", "b.txt", "file", extension=".txt"),
         ]
         repo.create_entries_bulk(entries)
         repo.compute_tree_metadata(d.id)
         row = db_conn.execute(
-            "SELECT descendant_file_count FROM entries WHERE drive_id = ? AND path = '/root'",
+            "SELECT descendant_file_count FROM entries WHERE drive_id = ? AND path = 'C:/'",
             (d.id,),
         ).fetchone()
         assert row[0] == 2  # a.txt + sub/b.txt
@@ -371,14 +371,14 @@ class TestComputeTreeMetadata:
     def test_sets_descendant_folder_count(self, repo, db_conn):
         d = repo.create_drive("D")
         entries = [
-            _entry(d.id, "/root", "root", "folder"),
-            _entry(d.id, "/root/sub", "sub", "folder"),
-            _entry(d.id, "/root/sub/deep", "deep", "folder"),
+            _entry(d.id, "C:/", "C:", "folder"),
+            _entry(d.id, "C:/sub", "sub", "folder"),
+            _entry(d.id, "C:/sub/deep", "deep", "folder"),
         ]
         repo.create_entries_bulk(entries)
         repo.compute_tree_metadata(d.id)
         row = db_conn.execute(
-            "SELECT descendant_folder_count FROM entries WHERE drive_id = ? AND path = '/root'",
+            "SELECT descendant_folder_count FROM entries WHERE drive_id = ? AND path = 'C:/'",
             (d.id,),
         ).fetchone()
         assert row[0] == 2  # sub + sub/deep
@@ -386,19 +386,19 @@ class TestComputeTreeMetadata:
     def test_does_not_overwrite_existing_values(self, repo, db_conn):
         d = repo.create_drive("D")
         entries = [
-            _entry(d.id, "/root", "root", "folder"),
-            _entry(d.id, "/root/child", "child", "folder"),
+            _entry(d.id, "C:/", "C:", "folder"),
+            _entry(d.id, "C:/child", "child", "folder"),
         ]
         repo.create_entries_bulk(entries)
-        # Pre-set depth on /root
+        # Pre-set depth on C:/
         db_conn.execute(
-            "UPDATE entries SET depth = 99 WHERE drive_id = ? AND path = '/root'",
+            "UPDATE entries SET depth = 99 WHERE drive_id = ? AND path = 'C:/'",
             (d.id,),
         )
         db_conn.commit()
         repo.compute_tree_metadata(d.id)
         row = db_conn.execute(
-            "SELECT depth FROM entries WHERE drive_id = ? AND path = '/root'",
+            "SELECT depth FROM entries WHERE drive_id = ? AND path = 'C:/'",
             (d.id,),
         ).fetchone()
         assert row[0] == 99  # preserved, not overwritten
@@ -406,8 +406,8 @@ class TestComputeTreeMetadata:
     def test_returns_count_of_updated_entries(self, repo, db_conn):
         d = repo.create_drive("D")
         entries = [
-            _entry(d.id, "/root", "root", "folder"),
-            _entry(d.id, "/root/a.txt", "a.txt", "file", extension=".txt"),
+            _entry(d.id, "C:/", "C:", "folder"),
+            _entry(d.id, "C:/a.txt", "a.txt", "file", extension=".txt"),
         ]
         repo.create_entries_bulk(entries)
         count = repo.compute_tree_metadata(d.id)
@@ -419,19 +419,19 @@ class TestComputeTreeMetadata:
     )
     @settings(max_examples=100)
     def test_property_depth_equals_separator_count(self, num_children, num_files):
-        """**Validates: Requirements 4.3** — depth = path separator count - 1 for absolute paths."""
+        """**Validates: Requirements 4.3** — depth = number of '/' separators after stripping trailing slash."""
         fd, path = tempfile.mkstemp(suffix=".db")
         os.close(fd)
         conn = init_db(path)
         try:
             r = Repository(conn)
             d = r.create_drive("D")
-            entries = [_entry(d.id, "/root", "root", "folder")]
+            entries = [_entry(d.id, "C:/", "C:", "folder")]
             for i in range(num_children):
-                entries.append(_entry(d.id, f"/root/child{i}", f"child{i}", "folder"))
+                entries.append(_entry(d.id, f"C:/child{i}", f"child{i}", "folder"))
             for i in range(num_files):
                 entries.append(
-                    _entry(d.id, f"/root/file{i}.txt", f"file{i}.txt", "file", extension=".txt")
+                    _entry(d.id, f"C:/file{i}.txt", f"file{i}.txt", "file", extension=".txt")
                 )
             r.create_entries_bulk(entries)
             r.compute_tree_metadata(d.id)
@@ -440,7 +440,7 @@ class TestComputeTreeMetadata:
                 "SELECT path, depth FROM entries WHERE drive_id = ?", (d.id,)
             ).fetchall()
             for entry_path, depth in rows:
-                expected = entry_path.count("/") - 1
+                expected = entry_path.rstrip("/").count("/")
                 assert depth == expected, f"path={entry_path}, depth={depth}, expected={expected}"
         finally:
             conn.close()
