@@ -56,12 +56,12 @@
 
 ## Task 7: Enhanced Prompts (Req 7.1)
 
-- [ ] 7.1 Add `build_wavefront_folder_prompt(summary: WavefrontFolderSummary) -> str` function to `src/classifier/prompts.py`.
-- [ ] 7.2 Include triage signal explanation (include = back up entire subtree, exclude = skip entire subtree, descend = classify children individually).
-- [ ] 7.3 Include tree metadata (child_count, descendant_file_count, descendant_folder_count) when not None, show "unknown" for None values.
-- [ ] 7.4 Include parent classification context section when `parent_classification` is not None.
-- [ ] 7.5 Request JSON output with `entry_id`, `folder_purpose`, `decision`, `classification_confidence`, `decision_confidence`, `reasoning`.
-- [ ] 7.6 Write tests for prompt builder: verify prompt contains taxonomy, triage signals, handles None tree metadata, includes/excludes parent context.
+- [x] 7.1 Add `build_wavefront_folder_prompt(summary: WavefrontFolderSummary) -> str` function to `src/classifier/prompts.py`.
+- [x] 7.2 Include triage signal explanation (include = back up entire subtree, exclude = skip entire subtree, descend = classify children individually).
+- [x] 7.3 Include tree metadata (child_count, descendant_file_count, descendant_folder_count) when not None, show "unknown" for None values.
+- [x] 7.4 Include parent classification context section when `parent_classification` is not None.
+- [x] 7.5 Request JSON output with `entry_id`, `folder_purpose`, `decision`, `classification_confidence`, `decision_confidence`, `reasoning`.
+- [x] 7.6 Write tests for prompt builder: verify prompt contains taxonomy, triage signals, handles None tree metadata, includes/excludes parent context.
 
 ## Task 8: Provider Protocol Update (Req 8.1)
 

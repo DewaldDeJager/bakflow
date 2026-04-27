@@ -6,7 +6,7 @@ with descriptions so the LLM understands every category.
 
 from __future__ import annotations
 
-from src.db.models import FileSummary, FolderSummary
+from src.db.models import FileSummary, FolderSummary, WavefrontFolderSummary
 
 # ---------------------------------------------------------------------------
 # Taxonomy descriptions (shared reference for prompts)
@@ -170,5 +170,109 @@ Return a JSON object with these fields:
 - folder_purpose (string): one of the taxonomy keys listed above
 - confidence (float): between 0.0 and 1.0
 - reasoning (string): brief explanation
+
+Return ONLY the JSON object, no other text."""
+
+
+def build_wavefront_folder_prompt(summary: WavefrontFolderSummary) -> str:
+    """Build a prompt for wavefront folder classification.
+
+    Includes:
+    - Folder purpose taxonomy
+    - Triage signal explanation (include/exclude/descend)
+    - Tree metadata (child count, descendant counts)
+    - Parent classification context (if available)
+    - Request for dual confidence scores
+    - Combined reasoning for both classification and decision
+    """
+    taxonomy_text = _format_folder_taxonomy()
+
+    # Format file type distribution
+    if summary.file_type_distribution:
+        dist_lines = [
+            f"    {ext}: {count} files"
+            for ext, count in sorted(
+                summary.file_type_distribution.items(),
+                key=lambda x: x[1],
+                reverse=True,
+            )
+        ]
+        dist_text = "\n".join(dist_lines)
+    else:
+        dist_text = "    (no files)"
+
+    # Format subfolder names
+    if summary.subfolder_names:
+        subfolder_text = ", ".join(summary.subfolder_names[:20])
+        if len(summary.subfolder_names) > 20:
+            subfolder_text += f" ... and {len(summary.subfolder_names) - 20} more"
+    else:
+        subfolder_text = "(none)"
+
+    # Tree metadata — show value or "unknown" for None
+    child_count_str = str(summary.child_count) if summary.child_count is not None else "unknown"
+    descendant_file_str = str(summary.descendant_file_count) if summary.descendant_file_count is not None else "unknown"
+    descendant_folder_str = str(summary.descendant_folder_count) if summary.descendant_folder_count is not None else "unknown"
+
+    # Parent context section (only when parent_classification is not None)
+    parent_section = ""
+    if summary.parent_classification is not None:
+        parent_section = f"""
+## Parent Folder Context
+
+  Parent classification: {summary.parent_classification}
+  Parent decision: {summary.parent_decision or "unknown"}
+"""
+
+    return f"""You are a folder classification and triage assistant. Your task is to classify this folder into one category from the Folder_Purpose taxonomy below, AND decide a triage signal for the backup wavefront traversal.
+
+## Folder_Purpose Taxonomy
+
+{taxonomy_text}
+
+## Triage Signals
+
+You must assign one of these triage decisions:
+  - include: Back up the entire subtree. All files and subfolders are included without further classification.
+  - exclude: Skip the entire subtree. Nothing in this folder tree will be backed up.
+  - descend: Classify children individually. Look deeper into subfolders before deciding.
+
+## Folder to Classify
+
+  entry_id: {summary.entry_id}
+  path: {summary.path}
+  name: {summary.name}
+  depth: {summary.depth}
+  size_bytes: {summary.size_bytes}
+
+  Tree metadata:
+    child_count: {child_count_str}
+    descendant_file_count: {descendant_file_str}
+    descendant_folder_count: {descendant_folder_str}
+
+  File type distribution:
+{dist_text}
+
+  Subfolders: {subfolder_text}
+{parent_section}
+## Instructions
+
+Based on the folder's path, name, contents, tree metadata, and parent context (if provided), determine:
+1. The most appropriate folder_purpose from the taxonomy above.
+2. The triage decision (include, exclude, or descend).
+
+Assign two confidence scores:
+- classification_confidence: how confident you are in the folder_purpose (0.0–1.0)
+- decision_confidence: how confident you are in the triage decision (0.0–1.0)
+
+Provide a single reasoning string that explains both the classification and the triage decision.
+
+Return a JSON object with these fields:
+- entry_id (int): the entry_id from the input
+- folder_purpose (string): one of the taxonomy keys listed above
+- decision (string): one of "include", "exclude", "descend"
+- classification_confidence (float): between 0.0 and 1.0
+- decision_confidence (float): between 0.0 and 1.0
+- reasoning (string): combined classification and decision reasoning
 
 Return ONLY the JSON object, no other text."""
