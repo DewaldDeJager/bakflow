@@ -32,6 +32,11 @@ class ColumnMapping:
     size: str = "Size"
     last_modified: str = "Last Modified"
     entry_type: str = "Type"  # may be absent — inferred from extension
+    dir_level: str = "Dir Level"
+    folder_path: str = "Folder Path"
+    child_item_count: str = "Child item count"
+    files_count: str = "Files"
+    folders_count: str = "Folders"
 
 
 @dataclass
@@ -223,6 +228,46 @@ def _parse_timestamp(raw: str) -> str | None:
         return None
 
 
+def _parse_tree_int(raw: str) -> int | None:
+    """Parse a tree metadata integer from TreeSize CSV.
+
+    Handles space-separated thousands (e.g. ``"85 218"`` → ``85218``).
+    Returns ``None`` for empty/whitespace-only strings.
+    """
+    raw = raw.strip()
+    if not raw:
+        return None
+    # Remove space/thin-space thousands separators
+    raw = raw.replace("\u202f", "").replace(" ", "")
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
+def _derive_depth(normalized_path: str) -> int:
+    """Derive depth from the number of ``/`` separators in a normalized path.
+
+    Examples:
+        ``C:/`` → 0, ``C:/Users/`` → 1, ``C:/Users/John/Documents/`` → 3
+    """
+    return normalized_path.count("/") - 1
+
+
+def _derive_parent_path(normalized_path: str, depth: int) -> str | None:
+    """Derive parent_path from the dirname of a normalized path.
+
+    Returns ``None`` for root entries (depth 0).
+    """
+    if depth <= 0:
+        return None
+    cleaned = normalized_path.rstrip("/")
+    last_slash = cleaned.rfind("/")
+    if last_slash <= 0:
+        return None
+    return cleaned[:last_slash]
+
+
 # ---------------------------------------------------------------------------
 # Main import function
 # ---------------------------------------------------------------------------
@@ -298,6 +343,13 @@ def import_csv(
         has_type_column = column_mapping.entry_type in reader.fieldnames
         has_name_column = column_mapping.name in reader.fieldnames
 
+        # Detect tree metadata columns
+        has_dir_level = column_mapping.dir_level in reader.fieldnames
+        has_folder_path = column_mapping.folder_path in reader.fieldnames
+        has_child_item_count = column_mapping.child_item_count in reader.fieldnames
+        has_files_count = column_mapping.files_count in reader.fieldnames
+        has_folders_count = column_mapping.folders_count in reader.fieldnames
+
         batch: list[tuple] = []
 
         for row_idx, row in enumerate(reader, start=skip_rows + 2):  # account for skipped + header
@@ -347,15 +399,51 @@ def import_csv(
                 raw_modified = row.get(column_mapping.last_modified, "").strip()
                 last_modified = _parse_timestamp(raw_modified)
 
+                # Tree metadata
+                norm_path = normalize_path(raw_path)
+
+                # depth
+                if has_dir_level:
+                    depth = _parse_tree_int(row.get(column_mapping.dir_level, ""))
+                else:
+                    depth = _derive_depth(norm_path)
+
+                # parent_path
+                if has_folder_path:
+                    raw_folder_path = row.get(column_mapping.folder_path, "").strip()
+                    parent_path = normalize_path(raw_folder_path) if raw_folder_path else None
+                else:
+                    effective_depth = depth if depth is not None else _derive_depth(norm_path)
+                    parent_path = _derive_parent_path(norm_path, effective_depth)
+
+                # count columns: from CSV or NULL
+                child_count = (
+                    _parse_tree_int(row.get(column_mapping.child_item_count, ""))
+                    if has_child_item_count else None
+                )
+                descendant_file_count = (
+                    _parse_tree_int(row.get(column_mapping.files_count, ""))
+                    if has_files_count else None
+                )
+                descendant_folder_count = (
+                    _parse_tree_int(row.get(column_mapping.folders_count, ""))
+                    if has_folders_count else None
+                )
+
                 batch.append((
                     drive_id,
-                    normalize_path(raw_path),
+                    norm_path,
                     raw_path,
                     name,
                     entry_type,
                     extension,
                     size_bytes,
                     last_modified,
+                    depth,
+                    parent_path,
+                    child_count,
+                    descendant_file_count,
+                    descendant_folder_count,
                 ))
 
             except Exception as exc:
@@ -365,14 +453,16 @@ def import_csv(
                 ))
 
     # Bulk insert
+    _INSERT_SQL = (
+        "INSERT INTO entries "
+        "(drive_id, path, original_path, name, entry_type, extension, "
+        "size_bytes, last_modified, depth, parent_path, child_count, "
+        "descendant_file_count, descendant_folder_count) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )
     if batch:
         try:
-            conn.executemany(
-                "INSERT INTO entries "
-                "(drive_id, path, original_path, name, entry_type, extension, size_bytes, last_modified) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                batch,
-            )
+            conn.executemany(_INSERT_SQL, batch)
             conn.commit()
             entries_created = len(batch)
         except sqlite3.IntegrityError as exc:
@@ -381,12 +471,7 @@ def import_csv(
             entries_created = 0
             for row_tuple in batch:
                 try:
-                    conn.execute(
-                        "INSERT INTO entries "
-                        "(drive_id, path, original_path, name, entry_type, extension, size_bytes, last_modified) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        row_tuple,
-                    )
+                    conn.execute(_INSERT_SQL, row_tuple)
                     entries_created += 1
                 except sqlite3.IntegrityError:
                     # Duplicate path for this drive — skip silently on force re-import

@@ -37,11 +37,11 @@
 
 ## Task 5: CSV Importer Updates (Req 5.1, 5.2)
 
-- [ ] 5.1 Add `dir_level`, `folder_path`, `child_item_count`, `files_count`, `folders_count` fields to `ColumnMapping` dataclass in `src/importer/csv_importer.py`.
-- [ ] 5.2 Update `import_csv` to detect and parse tree metadata columns (`Dir Level`, `Folder Path`, `Child item count`, `Files`, `Folders`). Populate `depth`, `parent_path`, `child_count`, `descendant_file_count`, `descendant_folder_count` in the INSERT statement.
-- [ ] 5.3 When tree columns are absent, derive `depth` from path separator count and `parent_path` from dirname. Leave count columns as NULL.
-- [ ] 5.4 Update the bulk INSERT statement to include the five new columns.
-- [ ] 5.5 Write tests for importer: test with CSV containing all tree columns, test with CSV missing tree columns (verify derivation and NULL counts), test integer parsing with space-separated thousands.
+- [x] 5.1 Add `dir_level`, `folder_path`, `child_item_count`, `files_count`, `folders_count` fields to `ColumnMapping` dataclass in `src/importer/csv_importer.py`.
+- [x] 5.2 Update `import_csv` to detect and parse tree metadata columns (`Dir Level`, `Folder Path`, `Child item count`, `Files`, `Folders`). Populate `depth`, `parent_path`, `child_count`, `descendant_file_count`, `descendant_folder_count` in the INSERT statement.
+- [x] 5.3 When tree columns are absent, derive `depth` from path separator count and `parent_path` from dirname. Leave count columns as NULL.
+- [x] 5.4 Update the bulk INSERT statement to include the five new columns.
+- [x] 5.5 Write tests for importer: test with CSV containing all tree columns, test with CSV missing tree columns (verify derivation and NULL counts), test integer parsing with space-separated thousands.
 
 ## Task 6: Wavefront Classifier (Req 6.1, 6.2, 6.3, 6.4, 6.5)
 
