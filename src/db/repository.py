@@ -501,7 +501,6 @@ class Repository:
             # Only update NULL columns
             parts: list[str] = []
             params: list[object] = []
-            # Check which columns need updating via a targeted query
             cur = self._conn.execute(
                 "SELECT depth, parent_path FROM entries WHERE id = ?",
                 (row_id,),
@@ -523,7 +522,7 @@ class Repository:
                 )
                 updated += 1
 
-        # --- Phase 2: child_count for folders (SQL subquery) --------------
+        # --- Phase 2: child_count for folders (parent_path join) ----------
         cur = self._conn.execute(
             "UPDATE entries SET child_count = ("
             "  SELECT COUNT(*) FROM entries c"
@@ -534,34 +533,70 @@ class Repository:
         )
         updated += cur.rowcount
 
-        # --- Phase 3: descendant_file_count for folders -------------------
-        # Use RTRIM to strip trailing '/' then re-append '/' so that root
-        # paths like 'F:/' produce the prefix 'F:/' (not 'F://').
-        # Exclude self-matches with d.path != entries.path.
-        cur = self._conn.execute(
-            "UPDATE entries SET descendant_file_count = ("
-            "  SELECT COUNT(*) FROM entries d"
-            "  WHERE d.drive_id = entries.drive_id"
-            "    AND d.entry_type = 'file'"
-            "    AND d.path LIKE RTRIM(entries.path, '/') || '/%'"
-            "    AND d.path != entries.path"
-            ") WHERE drive_id = ? AND entry_type = 'folder' AND descendant_file_count IS NULL",
+        # --- Phase 3 & 4: descendant counts (bottom-up aggregation) ------
+        # Walk the tree from deepest to shallowest using parent_path joins
+        # instead of expensive LIKE prefix scans.  At each depth, a folder's
+        # descendant counts = direct file children + sum of child folders'
+        # descendant counts + the child folders themselves.
+        max_depth_row = self._conn.execute(
+            "SELECT MAX(depth) FROM entries WHERE drive_id = ?",
             (drive_id,),
-        )
-        updated += cur.rowcount
+        ).fetchone()
+        max_depth = max_depth_row[0] if max_depth_row[0] is not None else 0
 
-        # --- Phase 4: descendant_folder_count for folders -----------------
-        cur = self._conn.execute(
-            "UPDATE entries SET descendant_folder_count = ("
-            "  SELECT COUNT(*) FROM entries d"
-            "  WHERE d.drive_id = entries.drive_id"
-            "    AND d.entry_type = 'folder'"
-            "    AND d.path LIKE RTRIM(entries.path, '/') || '/%'"
-            "    AND d.path != entries.path"
-            ") WHERE drive_id = ? AND entry_type = 'folder' AND descendant_folder_count IS NULL",
+        # Initialise leaf folders (child_count = 0) to 0 descendants
+        self._conn.execute(
+            "UPDATE entries SET descendant_file_count = 0, descendant_folder_count = 0 "
+            "WHERE drive_id = ? AND entry_type = 'folder' "
+            "  AND descendant_file_count IS NULL "
+            "  AND child_count = 0",
             (drive_id,),
         )
-        updated += cur.rowcount
+
+        # Bottom-up: from deepest to shallowest
+        for d in range(max_depth, -1, -1):
+            self._conn.execute(
+                "UPDATE entries SET descendant_file_count = ("
+                "  SELECT COALESCE(("
+                "    SELECT COUNT(*) FROM entries c"
+                "    WHERE c.drive_id = entries.drive_id"
+                "      AND c.parent_path = entries.path"
+                "      AND c.entry_type = 'file'"
+                "  ), 0) + COALESCE(("
+                "    SELECT SUM(cf.descendant_file_count) FROM entries cf"
+                "    WHERE cf.drive_id = entries.drive_id"
+                "      AND cf.parent_path = entries.path"
+                "      AND cf.entry_type = 'folder'"
+                "  ), 0)"
+                ") WHERE drive_id = ? AND entry_type = 'folder'"
+                "  AND depth = ? AND descendant_file_count IS NULL",
+                (drive_id, d),
+            )
+
+            self._conn.execute(
+                "UPDATE entries SET descendant_folder_count = ("
+                "  SELECT COALESCE(("
+                "    SELECT COUNT(*) FROM entries c"
+                "    WHERE c.drive_id = entries.drive_id"
+                "      AND c.parent_path = entries.path"
+                "      AND c.entry_type = 'folder'"
+                "  ), 0) + COALESCE(("
+                "    SELECT SUM(cf.descendant_folder_count) FROM entries cf"
+                "    WHERE cf.drive_id = entries.drive_id"
+                "      AND cf.parent_path = entries.path"
+                "      AND cf.entry_type = 'folder'"
+                "  ), 0)"
+                ") WHERE drive_id = ? AND entry_type = 'folder'"
+                "  AND depth = ? AND descendant_folder_count IS NULL",
+                (drive_id, d),
+            )
+
+        updated += self._conn.execute(
+            "SELECT COUNT(*) FROM entries "
+            "WHERE drive_id = ? AND entry_type = 'folder' "
+            "  AND descendant_file_count IS NOT NULL",
+            (drive_id,),
+        ).fetchone()[0]
 
         self._conn.commit()
         return updated

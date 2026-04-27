@@ -95,6 +95,9 @@ CREATE INDEX IF NOT EXISTS idx_entries_drive_path
 CREATE INDEX IF NOT EXISTS idx_entries_depth
     ON entries(drive_id, depth, classification_status, decision_status);
 
+CREATE INDEX IF NOT EXISTS idx_entries_parent_path
+    ON entries(drive_id, parent_path, entry_type);
+
 CREATE INDEX IF NOT EXISTS idx_entries_confidence
     ON entries(classification_confidence) WHERE classification_status = 'ai_classified';
 
