@@ -77,7 +77,7 @@ def _create_entries_with_states(repo, conn, entry_states):
 
         if state["classified"]:
             conn.execute(
-                "UPDATE entries SET file_class = 'document', confidence = 0.8 WHERE id = ?",
+                "UPDATE entries SET file_class = 'document', classification_confidence = 0.8 WHERE id = ?",
                 (entry_id,),
             )
             conn.commit()

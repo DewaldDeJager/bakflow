@@ -79,7 +79,7 @@ def mixed_entries_with_confidences(draw):
                 "extension": ext,
                 "size_bytes": draw(st.integers(min_value=0, max_value=10**9)),
                 "last_modified": "2024-06-15 12:00:00",
-                "confidence": conf,
+                "classification_confidence": conf,
             }
         )
     return entries
@@ -109,7 +109,7 @@ class ControlledConfidenceProvider:
                 FileClassification(
                     entry_id=s.entry_id,
                     file_class=VALID_FILE_CLASSES[0],
-                    confidence=self.confidence_map[s.entry_id],
+                    classification_confidence=self.confidence_map[s.entry_id],
                     reasoning="controlled mock",
                 )
             )
@@ -124,7 +124,7 @@ class ControlledConfidenceProvider:
                 FolderClassification(
                     entry_id=s.entry_id,
                     folder_purpose=VALID_FOLDER_PURPOSES[0],
-                    confidence=self.confidence_map[s.entry_id],
+                    classification_confidence=self.confidence_map[s.entry_id],
                     reasoning="controlled mock",
                 )
             )
@@ -182,7 +182,7 @@ class TestConfidenceBelowThresholdSetsPriorityReview:
             provider = ControlledConfidenceProvider()
             # Map each entry to its predetermined confidence
             for entry, ed in zip(entries, data):
-                provider.confidence_map[entry.id] = ed["confidence"]
+                provider.confidence_map[entry.id] = ed["classification_confidence"]
 
             config = ClassifierConfig(
                 confidence_threshold=threshold, batch_size=100
@@ -218,7 +218,7 @@ class TestConfidenceAtOrAboveThresholdNoPriorityReview:
 
             provider = ControlledConfidenceProvider()
             for entry, ed in zip(entries, data):
-                provider.confidence_map[entry.id] = ed["confidence"]
+                provider.confidence_map[entry.id] = ed["classification_confidence"]
 
             config = ClassifierConfig(
                 confidence_threshold=threshold, batch_size=100

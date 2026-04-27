@@ -38,7 +38,7 @@ def render_entry_card(
     """
     selected = False
     classification = entry.folder_purpose or entry.file_class or "—"
-    conf_str = f"{entry.confidence:.0%}" if entry.confidence is not None else "—"
+    conf_str = f"{entry.classification_confidence:.0%}" if entry.classification_confidence is not None else "—"
     icon = "📁" if entry.entry_type == "folder" else "📄"
     label = f"{icon} {entry.name}  —  {classification} ({conf_str})"
 

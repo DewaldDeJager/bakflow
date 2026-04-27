@@ -76,7 +76,7 @@ def _create_drive_with_entries(repo, conn, statuses: list[str]) -> str:
         if status == "ai_classified":
             # Set classification fields first
             conn.execute(
-                "UPDATE entries SET file_class = 'document', confidence = 0.9 WHERE id = ?",
+                "UPDATE entries SET file_class = 'document', classification_confidence = 0.9 WHERE id = ?",
                 (entry_id,),
             )
             conn.commit()
@@ -86,7 +86,7 @@ def _create_drive_with_entries(repo, conn, statuses: list[str]) -> str:
         elif status == "needs_reclassification":
             # Must go through ai_classified first
             conn.execute(
-                "UPDATE entries SET file_class = 'document', confidence = 0.9 WHERE id = ?",
+                "UPDATE entries SET file_class = 'document', classification_confidence = 0.9 WHERE id = ?",
                 (entry_id,),
             )
             conn.commit()
@@ -212,7 +212,7 @@ def _create_drive_with_decision_entries(
         # Reach the desired classification_status
         if cls_status == "ai_classified":
             conn.execute(
-                "UPDATE entries SET file_class = 'document', confidence = 0.9 WHERE id = ?",
+                "UPDATE entries SET file_class = 'document', classification_confidence = 0.9 WHERE id = ?",
                 (entry_id,),
             )
             conn.commit()
@@ -221,7 +221,7 @@ def _create_drive_with_decision_entries(
             apply_transition(conn, entry_id, "classification_status", "classification_failed")
         elif cls_status == "needs_reclassification":
             conn.execute(
-                "UPDATE entries SET file_class = 'document', confidence = 0.9 WHERE id = ?",
+                "UPDATE entries SET file_class = 'document', classification_confidence = 0.9 WHERE id = ?",
                 (entry_id,),
             )
             conn.commit()
@@ -234,7 +234,7 @@ def _create_drive_with_decision_entries(
             if cls_status not in ("ai_classified",):
                 # Force ai_classified for the review guard
                 conn.execute(
-                    "UPDATE entries SET file_class = 'document', confidence = 0.9, "
+                    "UPDATE entries SET file_class = 'document', classification_confidence = 0.9, "
                     "classification_status = 'ai_classified' WHERE id = ?",
                     (entry_id,),
                 )

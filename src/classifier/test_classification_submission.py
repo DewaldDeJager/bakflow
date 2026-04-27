@@ -145,7 +145,7 @@ class DeterministicMockProvider:
             cls = FileClassification(
                 entry_id=s.entry_id,
                 file_class=random.choice(VALID_FILE_CLASSES),
-                confidence=round(random.uniform(0.0, 1.0), 4),
+                classification_confidence=round(random.uniform(0.0, 1.0), 4),
                 reasoning=f"Mock reasoning for file {s.entry_id}",
             )
             self.file_classifications[s.entry_id] = cls
@@ -160,7 +160,7 @@ class DeterministicMockProvider:
             cls = FolderClassification(
                 entry_id=s.entry_id,
                 folder_purpose=random.choice(VALID_FOLDER_PURPOSES),
-                confidence=round(random.uniform(0.0, 1.0), 4),
+                classification_confidence=round(random.uniform(0.0, 1.0), 4),
                 reasoning=f"Mock reasoning for folder {s.entry_id}",
             )
             self.folder_classifications[s.entry_id] = cls
@@ -236,7 +236,7 @@ class TestFileClassificationSubmissionRoundTrip:
             for entry in updated:
                 submitted = provider.file_classifications[entry.id]
                 assert entry.file_class == submitted.file_class
-                assert entry.confidence == submitted.confidence
+                assert entry.classification_confidence == submitted.classification_confidence
                 assert entry.classification_status == "ai_classified"
         finally:
             conn.close()
@@ -268,7 +268,7 @@ class TestFolderClassificationSubmissionRoundTrip:
             for entry in updated:
                 submitted = provider.folder_classifications[entry.id]
                 assert entry.folder_purpose == submitted.folder_purpose
-                assert entry.confidence == submitted.confidence
+                assert entry.classification_confidence == submitted.classification_confidence
                 assert entry.classification_status == "ai_classified"
         finally:
             conn.close()
@@ -300,12 +300,12 @@ class TestMixedSubmissionRoundTrip:
                 if entry.entry_type == "file":
                     submitted = provider.file_classifications[entry.id]
                     assert entry.file_class == submitted.file_class
-                    assert entry.confidence == submitted.confidence
+                    assert entry.classification_confidence == submitted.classification_confidence
                     assert entry.folder_purpose is None
                 else:
                     submitted = provider.folder_classifications[entry.id]
                     assert entry.folder_purpose == submitted.folder_purpose
-                    assert entry.confidence == submitted.confidence
+                    assert entry.classification_confidence == submitted.classification_confidence
                     assert entry.file_class is None
         finally:
             conn.close()
@@ -327,7 +327,7 @@ class TestSubmissionStatusTransition:
                 assert e.classification_status == "unclassified"
                 assert e.file_class is None
                 assert e.folder_purpose is None
-                assert e.confidence is None
+                assert e.classification_confidence is None
 
             provider = DeterministicMockProvider()
             config = ClassifierConfig(confidence_threshold=0.7, batch_size=100)

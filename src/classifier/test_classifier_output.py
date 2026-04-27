@@ -104,7 +104,7 @@ class MockLLMProvider:
                 FileClassification(
                     entry_id=s.entry_id,
                     file_class=random.choice(VALID_FILE_CLASSES),
-                    confidence=round(random.uniform(0.0, 1.0), 4),
+                    classification_confidence=round(random.uniform(0.0, 1.0), 4),
                     reasoning="Mock classification",
                 )
             )
@@ -119,7 +119,7 @@ class MockLLMProvider:
                 FolderClassification(
                     entry_id=s.entry_id,
                     folder_purpose=random.choice(VALID_FOLDER_PURPOSES),
-                    confidence=round(random.uniform(0.0, 1.0), 4),
+                    classification_confidence=round(random.uniform(0.0, 1.0), 4),
                     reasoning="Mock classification",
                 )
             )
@@ -318,8 +318,8 @@ class TestConfidenceInRange:
             updated_entries = repo.get_entries_by_drive(drive_id)
             for entry in updated_entries:
                 assert entry.classification_status == "ai_classified"
-                assert entry.confidence is not None
-                assert 0.0 <= entry.confidence <= 1.0
+                assert entry.classification_confidence is not None
+                assert 0.0 <= entry.classification_confidence <= 1.0
         finally:
             conn.close()
             os.unlink(path)

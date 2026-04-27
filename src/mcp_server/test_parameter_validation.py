@@ -219,7 +219,7 @@ class TestMCPParameterValidation:
         try:
             result = asyncio.run(
                 submit_classification(classifications=[
-                    {"file_class": "document", "confidence": 0.9}
+                    {"file_class": "document", "classification_confidence": 0.9}
                 ])
             )
             # Should not raise — returns structured result with failure count
@@ -245,7 +245,7 @@ class TestMCPParameterValidation:
 
             result = asyncio.run(
                 submit_classification(classifications=[
-                    {"entry_id": entry_id, "file_class": "document", "confidence": 1.5}
+                    {"entry_id": entry_id, "file_class": "document", "classification_confidence": 1.5}
                 ])
             )
             assert result["failed"] >= 1

@@ -62,7 +62,7 @@ def render() -> None:
             "Destination": e.decision_destination or "—",
             "Type": e.entry_type,
             "Classification": classification,
-            "Confidence": f"{e.confidence:.0%}" if e.confidence is not None else "—",
+            "Confidence": f"{e.classification_confidence:.0%}" if e.classification_confidence is not None else "—",
             "Decision": e.decision_status,
             "Notes": e.decision_notes or "—",
         })

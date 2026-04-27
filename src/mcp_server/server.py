@@ -251,7 +251,7 @@ async def submit_classification(classifications: list[dict]) -> dict:
 
     Args:
         classifications: List of dicts, each with entry_id and either
-            file_class or folder_purpose, plus confidence and reasoning.
+            file_class or folder_purpose, plus classification_confidence and reasoning.
     """
     if not classifications:
         return _error_response(
@@ -279,13 +279,13 @@ async def submit_classification(classifications: list[dict]) -> dict:
             errors.append({"error": f"entry {entry_id} not found", "entry_id": entry_id})
             continue
 
-        confidence = item.get("confidence")
+        confidence = item.get("classification_confidence")
         if confidence is None or not (0.0 <= confidence <= 1.0):
             failed += 1
             errors.append({
-                "error": "confidence must be a float in [0.0, 1.0]",
+                "error": "classification_confidence must be a float in [0.0, 1.0]",
                 "entry_id": entry_id,
-                "confidence": confidence,
+                "classification_confidence": confidence,
             })
             continue
 
@@ -303,7 +303,7 @@ async def submit_classification(classifications: list[dict]) -> dict:
                     })
                     continue
                 conn.execute(
-                    "UPDATE entries SET file_class = ?, confidence = ?, "
+                    "UPDATE entries SET file_class = ?, classification_confidence = ?, "
                     "classification_reasoning = ? WHERE id = ?",
                     (file_class, confidence, reasoning, entry_id),
                 )
@@ -316,7 +316,7 @@ async def submit_classification(classifications: list[dict]) -> dict:
                     })
                     continue
                 conn.execute(
-                    "UPDATE entries SET folder_purpose = ?, confidence = ?, "
+                    "UPDATE entries SET folder_purpose = ?, classification_confidence = ?, "
                     "classification_reasoning = ? WHERE id = ?",
                     (folder_purpose, confidence, reasoning, entry_id),
                 )

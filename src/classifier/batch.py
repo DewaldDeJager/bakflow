@@ -238,14 +238,14 @@ class BatchClassifier:
         self, entry: Entry, classification: FileClassification
     ) -> None:
         """Write a file classification to the database via status transition."""
-        priority = classification.confidence < self._config.confidence_threshold
+        priority = classification.classification_confidence < self._config.confidence_threshold
 
         self._conn.execute(
-            "UPDATE entries SET file_class = ?, confidence = ?, "
+            "UPDATE entries SET file_class = ?, classification_confidence = ?, "
             "classification_reasoning = ?, priority_review = ? WHERE id = ?",
             (
                 classification.file_class,
-                classification.confidence,
+                classification.classification_confidence,
                 classification.reasoning,
                 int(priority),
                 entry.id,
@@ -262,14 +262,14 @@ class BatchClassifier:
         self, entry: Entry, classification: FolderClassification
     ) -> None:
         """Write a folder classification to the database via status transition."""
-        priority = classification.confidence < self._config.confidence_threshold
+        priority = classification.classification_confidence < self._config.confidence_threshold
 
         self._conn.execute(
-            "UPDATE entries SET folder_purpose = ?, confidence = ?, "
+            "UPDATE entries SET folder_purpose = ?, classification_confidence = ?, "
             "classification_reasoning = ?, priority_review = ? WHERE id = ?",
             (
                 classification.folder_purpose,
-                classification.confidence,
+                classification.classification_confidence,
                 classification.reasoning,
                 int(priority),
                 entry.id,

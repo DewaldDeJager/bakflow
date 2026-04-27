@@ -88,9 +88,9 @@
 
 ## Task 11: Update Existing Code References
 
-- [ ] 11.1 Update `BatchClassifier` in `src/classifier/batch.py` to use `classification_confidence` instead of `confidence` in all DB writes and model references.
-- [ ] 11.2 Update `submit_classification` MCP tool to use `classification_confidence` instead of `confidence`.
-- [ ] 11.3 Update any existing tests that reference the `confidence` field to use `classification_confidence`.
+- [x] 11.1 Update `BatchClassifier` in `src/classifier/batch.py` to use `classification_confidence` instead of `confidence` in all DB writes and model references.
+- [x] 11.2 Update `submit_classification` MCP tool to use `classification_confidence` instead of `confidence`.
+- [x] 11.3 Update any existing tests that reference the `confidence` field to use `classification_confidence`.
 - [ ] 11.4 Update `_row_to_entry` and `_fetch_entry` helpers to handle the renamed column and new columns.
 
 ## Task 12: Integration Verification

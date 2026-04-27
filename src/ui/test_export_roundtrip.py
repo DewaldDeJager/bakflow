@@ -132,12 +132,12 @@ def _create_reviewed_entries(
         # Classify
         if entry_type == "file":
             conn.execute(
-                "UPDATE entries SET file_class = ?, confidence = ? WHERE id = ?",
+                "UPDATE entries SET file_class = ?, classification_confidence = ? WHERE id = ?",
                 (file_class, conf, entry.id),
             )
         else:
             conn.execute(
-                "UPDATE entries SET folder_purpose = ?, confidence = ? WHERE id = ?",
+                "UPDATE entries SET folder_purpose = ?, classification_confidence = ? WHERE id = ?",
                 (folder_purpose, conf, entry.id),
             )
         conn.commit()
@@ -203,9 +203,9 @@ class TestExportRoundTrip:
                 assert row["classification"] == expected_class
                 assert row["decision"] == entry.decision_status
                 assert row["notes"] == (entry.decision_notes or "")
-                if entry.confidence is not None:
-                    parsed_conf = float(row["confidence"])
-                    assert abs(parsed_conf - entry.confidence) < 1e-3
+                if entry.classification_confidence is not None:
+                    parsed_conf = float(row["classification_confidence"])
+                    assert abs(parsed_conf - entry.classification_confidence) < 1e-3
 
             # Verify summary header comments
             header_lines = [l for l in lines if l.startswith("#")]
@@ -256,8 +256,8 @@ class TestExportRoundTrip:
                 assert record["classification"] == expected_class
                 assert record["decision"] == entry.decision_status
                 assert record["notes"] == entry.decision_notes
-                if entry.confidence is not None:
-                    assert abs(record["confidence"] - entry.confidence) < 1e-6
+                if entry.classification_confidence is not None:
+                    assert abs(record["confidence"] - entry.classification_confidence) < 1e-6
         finally:
             conn.close()
             os.unlink(path)

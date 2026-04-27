@@ -40,7 +40,7 @@ def _entry_spec(draw):
     """Generate a spec for an entry with a classification status and confidence."""
     status = draw(st.sampled_from(_classification_statuses))
     confidence = draw(_confidence_strategy) if status == "ai_classified" else None
-    return {"classification_status": status, "confidence": confidence}
+    return {"classification_status": status, "classification_confidence": confidence}
 
 
 # ---------------------------------------------------------------------------
@@ -77,11 +77,11 @@ def _create_drive_with_mixed_entries(repo, conn, entry_specs):
         # Entry IDs are sequential starting from 1
         entry_id = i + 1
         status = spec["classification_status"]
-        confidence = spec["confidence"]
+        confidence = spec["classification_confidence"]
 
         if status == "ai_classified":
             conn.execute(
-                "UPDATE entries SET file_class = 'document', confidence = ? WHERE id = ?",
+                "UPDATE entries SET file_class = 'document', classification_confidence = ? WHERE id = ?",
                 (confidence, entry_id),
             )
             conn.commit()
@@ -90,7 +90,7 @@ def _create_drive_with_mixed_entries(repo, conn, entry_specs):
             apply_transition(conn, entry_id, "classification_status", "classification_failed")
         elif status == "needs_reclassification":
             conn.execute(
-                "UPDATE entries SET file_class = 'document', confidence = 0.5 WHERE id = ?",
+                "UPDATE entries SET file_class = 'document', classification_confidence = 0.5 WHERE id = ?",
                 (entry_id,),
             )
             conn.commit()
@@ -163,7 +163,7 @@ class TestReviewQueueFiltering:
                 get_review_queue(drive_id=drive_id, limit=1000)
             )
             assert "error" not in result
-            confidences = [e["confidence"] for e in result["entries"]]
+            confidences = [e["classification_confidence"] for e in result["entries"]]
             assert confidences == sorted(confidences)
         finally:
             conn.close()

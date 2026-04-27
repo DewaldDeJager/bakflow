@@ -82,7 +82,7 @@ def _setup_cascade_scenario(repo, conn, child_decisions):
 
     # Classify the folder
     conn.execute(
-        "UPDATE entries SET folder_purpose = 'project_or_work', confidence = 0.9 WHERE id = ?",
+        "UPDATE entries SET folder_purpose = 'project_or_work', classification_confidence = 0.9 WHERE id = ?",
         (folder_id,),
     )
     conn.commit()
@@ -105,7 +105,7 @@ def _setup_cascade_scenario(repo, conn, child_decisions):
 
         # Classify the child
         conn.execute(
-            "UPDATE entries SET file_class = 'document', confidence = 0.8 WHERE id = ?",
+            "UPDATE entries SET file_class = 'document', classification_confidence = 0.8 WHERE id = ?",
             (child_id,),
         )
         conn.commit()

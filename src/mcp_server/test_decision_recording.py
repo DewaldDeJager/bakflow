@@ -80,7 +80,7 @@ def _create_ai_classified_entry(repo, conn, idx=0):
 
     # Classify it
     conn.execute(
-        "UPDATE entries SET file_class = 'document', confidence = 0.85 WHERE id = ?",
+        "UPDATE entries SET file_class = 'document', classification_confidence = 0.85 WHERE id = ?",
         (entry_id,),
     )
     conn.commit()

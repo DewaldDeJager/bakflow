@@ -87,12 +87,12 @@ def _seed_drive_with_entries(repo, conn, count=5):
     for entry in entries:
         if entry.entry_type == "file":
             conn.execute(
-                "UPDATE entries SET file_class = ?, confidence = ? WHERE id = ?",
+                "UPDATE entries SET file_class = ?, classification_confidence = ? WHERE id = ?",
                 ("document", 0.85, entry.id),
             )
         else:
             conn.execute(
-                "UPDATE entries SET folder_purpose = ?, confidence = ? WHERE id = ?",
+                "UPDATE entries SET folder_purpose = ?, classification_confidence = ? WHERE id = ?",
                 ("project_or_work", 0.9, entry.id),
             )
         conn.commit()
@@ -180,7 +180,7 @@ class TestToolCallability:
                 "classifications": [{
                     "entry_id": entry.id,
                     "file_class": "document",
-                    "confidence": 0.9,
+                    "classification_confidence": 0.9,
                     "reasoning": "test",
                 }],
             })
@@ -259,7 +259,7 @@ class TestConcurrentAccess:
                 "classifications": [{
                     "entry_id": entry_id,
                     "file_class": "document",
-                    "confidence": 0.8,
+                    "classification_confidence": 0.8,
                     "reasoning": "concurrent test",
                 }],
             })

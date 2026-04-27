@@ -48,7 +48,7 @@ def entries_to_csv(entries: list[Entry], summary: dict) -> str:
     writer = csv.writer(output)
     writer.writerow([
         "source_path", "destination_path", "entry_type",
-        "classification", "confidence", "decision", "notes",
+        "classification", "classification_confidence", "decision", "notes",
     ])
     for e in entries:
         classification = e.folder_purpose or e.file_class or ""
@@ -57,7 +57,7 @@ def entries_to_csv(entries: list[Entry], summary: dict) -> str:
             e.decision_destination or "",
             e.entry_type,
             classification,
-            f"{e.confidence:.4f}" if e.confidence is not None else "",
+            f"{e.classification_confidence:.4f}" if e.classification_confidence is not None else "",
             e.decision_status,
             e.decision_notes or "",
         ])
@@ -75,7 +75,7 @@ def entries_to_json(entries: list[Entry], summary: dict) -> str:
             "destination_path": e.decision_destination,
             "entry_type": e.entry_type,
             "classification": classification,
-            "confidence": e.confidence,
+            "confidence": e.classification_confidence,
             "decision": e.decision_status,
             "notes": e.decision_notes,
         })

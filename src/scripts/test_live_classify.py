@@ -38,10 +38,10 @@ def print_result(result: BatchResult, repo: Repository, drive_id: str) -> None:
     # Show the classified entries
     conn = repo._conn
     rows = conn.execute(
-        "SELECT path, entry_type, file_class, folder_purpose, confidence, "
+        "SELECT path, entry_type, file_class, folder_purpose, classification_confidence, "
         "classification_reasoning, priority_review "
         "FROM entries WHERE drive_id = ? AND classification_status = 'ai_classified' "
-        "ORDER BY confidence ASC",
+        "ORDER BY classification_confidence ASC",
         (drive_id,),
     ).fetchall()
 
