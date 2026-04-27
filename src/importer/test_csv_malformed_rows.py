@@ -16,7 +16,7 @@ from hypothesis import given, settings, assume
 from hypothesis import strategies as st
 
 from src.db.schema import init_db
-from src.db.repository import Repository
+from src.db.repository import Repository, normalize_path
 from src.importer.csv_importer import import_csv, ColumnMapping
 
 
@@ -275,14 +275,15 @@ class TestMalformedCsvRowHandling:
     @given(data=_mixed_rows_strategy())
     @settings(max_examples=100)
     def test_valid_entries_have_correct_paths(self, data):
-        """Entries created from valid rows have the correct paths."""
+        """Entries created from valid rows have the correct normalized paths."""
         seen = set()
         deduped_data = []
         unique_valid = []
         for r in data:
             if r["_valid"]:
-                if r["Path"] not in seen:
-                    seen.add(r["Path"])
+                norm = normalize_path(r["Path"])
+                if norm not in seen:
+                    seen.add(norm)
                     deduped_data.append(r)
                     unique_valid.append(r)
             else:
@@ -300,7 +301,7 @@ class TestMalformedCsvRowHandling:
 
             entries = repo.get_entries_by_drive(drive.id)
             entry_paths = {e.path for e in entries}
-            expected_paths = {r["Path"] for r in unique_valid}
+            expected_paths = {normalize_path(r["Path"]) for r in unique_valid}
             assert entry_paths == expected_paths
         finally:
             conn.close()

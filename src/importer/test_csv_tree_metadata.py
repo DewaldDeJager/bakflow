@@ -189,8 +189,8 @@ class TestTreeColumnsMissing:
 
             entries = {e.path: e for e in repo.get_entries_by_drive(drive.id)}
             assert entries["C:/"].depth == 0
-            assert entries["C:/Users/"].depth == 1
-            assert entries["C:/Users/John/Documents/"].depth == 3
+            assert entries["C:/Users"].depth == 1
+            assert entries["C:/Users/John/Documents"].depth == 3
         finally:
             conn.close()
             os.unlink(db_path)
@@ -215,8 +215,8 @@ class TestTreeColumnsMissing:
             entries = {e.path: e for e in repo.get_entries_by_drive(drive.id)}
             # Root has no parent
             assert entries["C:/"].parent_path is None
-            # Users parent is C:
-            assert entries["C:/Users/"].parent_path == "C:"
+            # Users parent is C:/
+            assert entries["C:/Users"].parent_path == "C:/"
             # file.txt parent is C:/Users/John
             assert entries["C:/Users/John/file.txt"].parent_path == "C:/Users/John"
         finally:
@@ -287,13 +287,19 @@ class TestDeriveDepth:
         assert _derive_depth("C:/") == 0
 
     def test_depth_one(self):
+        assert _derive_depth("C:/Users") == 1
+
+    def test_depth_one_trailing_slash(self):
         assert _derive_depth("C:/Users/") == 1
 
     def test_depth_three(self):
+        assert _derive_depth("C:/Users/John/Documents") == 3
+
+    def test_depth_three_trailing_slash(self):
         assert _derive_depth("C:/Users/John/Documents/") == 3
 
     def test_file_path(self):
-        assert _derive_depth("C:/Users/John/file.txt") == 2
+        assert _derive_depth("C:/Users/John/file.txt") == 3
 
 
 class TestDeriveParentPath:
@@ -301,10 +307,10 @@ class TestDeriveParentPath:
         assert _derive_parent_path("C:/", 0) is None
 
     def test_depth_one_parent(self):
-        assert _derive_parent_path("C:/Users/", 1) == "C:"
+        assert _derive_parent_path("C:/Users", 1) == "C:/"
 
     def test_deeper_parent(self):
-        assert _derive_parent_path("C:/Users/John/Documents/", 3) == "C:/Users/John"
+        assert _derive_parent_path("C:/Users/John/Documents", 3) == "C:/Users/John"
 
     def test_file_parent(self):
-        assert _derive_parent_path("C:/Users/John/file.txt", 2) == "C:/Users/John"
+        assert _derive_parent_path("C:/Users/John/file.txt", 3) == "C:/Users/John"

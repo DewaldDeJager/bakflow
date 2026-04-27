@@ -20,8 +20,22 @@ from src.db.models import Drive, Entry
 # ---------------------------------------------------------------------------
 
 def normalize_path(p: str) -> str:
-    """Replace all backslashes with forward slashes."""
-    return p.replace("\\", "/")
+    """Normalise a filesystem path for consistent storage.
+
+    * Backslashes are replaced with forward slashes.
+    * Trailing slashes are stripped **except** for drive roots (e.g. ``C:/``,
+      ``F:/``) and the Unix root ``/``, so that depth derivation and parent
+      lookups work uniformly for files and folders.
+    """
+    fwd = p.replace("\\", "/")
+    # Preserve trailing slash for drive roots like "C:/" or Unix root "/"
+    if fwd == "/":
+        return fwd
+    stripped = fwd.rstrip("/")
+    # Check for drive-letter root: exactly "X:" after stripping
+    if len(stripped) == 2 and stripped[1] == ":":
+        return stripped + "/"
+    return stripped
 
 
 # ---------------------------------------------------------------------------

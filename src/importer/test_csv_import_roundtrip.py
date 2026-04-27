@@ -17,7 +17,7 @@ from hypothesis import given, settings, assume
 from hypothesis import strategies as st
 
 from src.db.schema import init_db
-from src.db.repository import Repository
+from src.db.repository import Repository, normalize_path
 from src.importer.csv_importer import import_csv, ColumnMapping
 
 
@@ -188,7 +188,7 @@ class TestCsvImportRoundTrip:
     @given(rows=_csv_rows_strategy)
     @settings(max_examples=100)
     def test_imported_entries_match_csv_paths(self, rows):
-        """Each imported Entry's path matches the corresponding CSV row."""
+        """Each imported Entry's path matches the normalized CSV row path."""
         conn, repo, db_path = _make_temp_db()
         csv_path = None
         try:
@@ -199,7 +199,7 @@ class TestCsvImportRoundTrip:
 
             entries = repo.get_entries_by_drive(drive.id)
             entry_paths = {e.path for e in entries}
-            csv_paths = {r["Path"] for r in rows}
+            csv_paths = {normalize_path(r["Path"]) for r in rows}
             assert entry_paths == csv_paths
         finally:
             conn.close()
@@ -222,7 +222,7 @@ class TestCsvImportRoundTrip:
             entries = repo.get_entries_by_drive(drive.id)
             entry_by_path = {e.path: e for e in entries}
             for row in rows:
-                entry = entry_by_path[row["Path"]]
+                entry = entry_by_path[normalize_path(row["Path"])]
                 assert entry.size_bytes == int(row["Size"])
         finally:
             conn.close()
@@ -245,7 +245,7 @@ class TestCsvImportRoundTrip:
             entries = repo.get_entries_by_drive(drive.id)
             entry_by_path = {e.path: e for e in entries}
             for row in rows:
-                entry = entry_by_path[row["Path"]]
+                entry = entry_by_path[normalize_path(row["Path"])]
                 assert entry.entry_type == row["Type"]
         finally:
             conn.close()
@@ -324,7 +324,7 @@ class TestCsvImportRoundTrip:
             for row in rows:
                 path = row["Path"]
                 if path.endswith("/") or path.endswith("\\"):
-                    assert entry_by_path[path].entry_type == "folder"
+                    assert entry_by_path[normalize_path(path)].entry_type == "folder"
         finally:
             conn.close()
             os.unlink(db_path)

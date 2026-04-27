@@ -248,24 +248,34 @@ def _parse_tree_int(raw: str) -> int | None:
 def _derive_depth(normalized_path: str) -> int:
     """Derive depth from the number of ``/`` separators in a normalized path.
 
+    The path is stripped of any trailing ``/`` before counting so that files
+    and folders at the same level get the same depth.
+
     Examples:
-        ``C:/`` → 0, ``C:/Users/`` → 1, ``C:/Users/John/Documents/`` → 3
+        ``C:/`` → 0, ``C:/Users`` → 1, ``C:/Users/John/Documents`` → 3,
+        ``C:/Users/John/file.txt`` → 3
     """
-    return normalized_path.count("/") - 1
+    stripped = normalized_path.rstrip("/")
+    return stripped.count("/")
 
 
 def _derive_parent_path(normalized_path: str, depth: int) -> str | None:
     """Derive parent_path from the dirname of a normalized path.
 
-    Returns ``None`` for root entries (depth 0).
+    Returns ``None`` for root entries (depth 0).  For depth-1 entries the
+    parent is the drive root (e.g. ``C:/``).
     """
     if depth <= 0:
         return None
     cleaned = normalized_path.rstrip("/")
     last_slash = cleaned.rfind("/")
-    if last_slash <= 0:
+    if last_slash < 0:
         return None
-    return cleaned[:last_slash]
+    parent = cleaned[:last_slash]
+    # If parent is a drive letter like "C:", return "C:/" (the root)
+    if len(parent) == 2 and parent[1] == ":":
+        return parent + "/"
+    return parent if parent else None
 
 
 # ---------------------------------------------------------------------------
