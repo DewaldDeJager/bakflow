@@ -9,7 +9,7 @@
     - [ ] Borg lists
     - [ ] *nix ls/tree formats
 - [ ] Improve TreeSize CSV importer to use metadata at the top of the CSV instead of skipping it (eg. Report date and time, drive capacity, multi-drive exports.)
-- [ ] Improve classification approach to be breadth-first and focus on folders
+- [x] Improve classification approach to be breadth-first and focus on folders
 - [ ] Consider compacting the depth of subtrees with single-nested folders
 - [ ] Improve context propagation for folders
 - [ ] Add context propagation for files (eg. context on parent classification, siblings, nearby subtrees, etc.)

@@ -12,8 +12,10 @@ src/
 │   ├── repository.py    # Repository class — CRUD, queries, batch operations
 │   └── test_*.py        # Co-located tests (unit + property-based)
 ├── importer/            # CSV import from TreeSize exports
-├── classifier/          # LLM classification (provider protocol, prompts, batch orchestration)
-├── mcp_server/          # FastMCP tool definitions (8 tools)
+├── classifier/          # LLM classification (provider protocol, prompts, batch + wavefront orchestration)
+│   ├── wavefront.py     # WavefrontClassifier — tree-aware BFS depth traversal with pruning
+│   └── ...
+├── mcp_server/          # FastMCP tool definitions (10 tools)
 └── ui/                  # Streamlit multi-page app
     ├── pages/           # Page modules (drive management, review queue, progress, export)
     └── components/      # Reusable UI components (entry card, filters, bulk actions)
